@@ -105,54 +105,54 @@ semantic tokens, registry-driven docs, adapter boundary) must make them addition
 
 ## Decision log
 
-| #   | Decision | Rationale | Status | Source |
-| --- | --- | --- | --- | --- |
-| D1 | General-purpose drafting notepad: user writes formulas **and** values; app computes inline and cross-checks written values | The product's reason to exist; checks for mistakes in a drafted solution | decided | user |
-| D2 | Symbolic rearrangement **and** numeric solving | "Solve for unknowns" in both senses | decided | user |
-| D3 | Full global constraint solving: the whole document is one system, line order irrelevant | Powerful drafting; unresolved cases degrade quietly | decided | user |
-| D4 | Success = replaces calculator/spreadsheet for target math | Concrete definition of done | decided | user |
-| D5 | Open source, MIT, public GitHub repo | Audience and licensing | decided | user |
-| D6 | `identifier = expr` is a definition/claim; any other `lhs = rhs` is an equation to solve | Simple, keyword-free line semantics | decided | user |
-| D7 | Value conflicts: inline error + expected value + one-click fix; never silent edits | User text is sacred; mistakes are easy to fix | decided | user |
-| D8 | Results inline at line end (muted); on narrow screens the result drops to its own indented line | Keeps the draft readable; never breaks a formula | decided | user |
-| D9 | Multiple real solutions shown inline, up to four plus a count | Complete answers without flooding the line | decided | user |
-| D10 | Unresolved symbols show their symbolic form inline | Drafting keeps flowing while values are missing | decided | user |
-| D11 | Claim checking respects written precision (claim's last written decimal place; settings can override with a global tolerance) | `2.02` for `2.0198` is rounding, not an error | decided | user |
-| D12 | Parse problems are quiet and inline; a malformed line may simply be prose | Notepad, not a compiler | decided | user |
-| D13 | Try-parse every line; whole-line math only — no math inside prose sentences | Predictable and simple; inline segments deferred | decided | user |
-| D14 | Duplicate definitions with different values are flagged as errors | Stale redefinitions are a common source of silent mistakes | decided | user |
-| D15 | `%` is a percent literal (`20%` = 0.20); modulo stays `mod(a, b)` | Calculator intuition; math convention for the rest | decided | user |
-| D16 | Radians default; degrees setting ships in v1 | Math convention, engineering drafting covered | decided | user |
-| D17 | Smart number display: exact rational when short, else ~12 significant digits, trailing zeros trimmed; precision configurable | Readable by default, exact when exact is cheap | decided | user |
-| D18 | Prose is plain text; only math lines get highlighting and results | No Markdown machinery in v1 | decided | user |
-| D19 | Performance target: smooth to ~500 lines, debounced re-solve (150–250 ms), solving in a Web Worker | Typing must never stutter | decided | user |
-| D20 | Delivery: PWA + Tauri v2 wrappers; v1 native artifacts = Windows, macOS, Linux, Android APK; iOS stays PWA | Matches ClyTrade pattern and "every OS" | decided | user |
-| D21 | React + TypeScript + Vite, mirroring ClyTrade's toolchain (React 19, TS 6, Vite 8, Tailwind 4, Dexie 4, zod 4, vitest 5, Playwright, ESLint 10, Prettier 3) | Proven in the author's other project; easy contribution | decided | user |
-| D22 | Nerdamer 2.0.0 behind Inlign's own CAS adapter interface | The only mature JS CAS with symbolic + numeric solving; adapter keeps it replaceable | decided | user |
-| D23 | CodeMirror 6, direct integration (no React wrapper), inline widget decorations; solving in a Web Worker | Purpose-built for inline results; full control; no wrapper lock-in | decided | user |
-| D24 | Persistence: IndexedDB multi-notebook via Dexie; `.inlign` text export/import; JSON backup/restore | Local-first, mirrors ClyTrade data approach | decided | user |
-| D25 | English only in v1, typed-dictionary i18n seam in place | Avoids retrofit; no second locale to maintain yet | decided | user |
-| D26 | License MIT | As requested; compatible with Apache-2.0 Nerdamer | decided | user |
-| D27 | Full ClyTrade repo conventions: AGENTS.md, masterplan.md, CHANGELOG, CONTRIBUTING, in-app docs registry, live.sh, version/bump scripts, screenshots pipeline | One house style across the author's projects | decided | user |
-| D28 | CI/CD: GitHub Pages PWA deploy + tag-driven release workflow with native artifacts and CHANGELOG | Proven ClyTrade approach | decided | user |
-| D29 | Testing ladder: table-driven engine tests, component tests (Testing Library + fake-indexeddb), Playwright e2e + screenshots | Trustworthy engine is the product; UI flows must be proven | decided | user |
-| D30 | Settings v1: precision & formatting, tolerance override, theme, accent, angle mode, backup export/import | Everything users need in one place | decided | user |
-| D31 | Identity: Inlign · package `inlign` · `com.inlign.app` · v0.1.0 · LAN dev port 7406 | Confirmed | decided | user |
-| D32 | Single-notebook export format: `.inlign` UTF-8 plain text | Readable, diffable, future-proof | decided | user |
-| D33 | In-app docs pages: Getting started, Syntax reference, How checking works, Engine limits, Data & backup | Explain the why, not just the how | decided | user |
-| D34 | Minimal shortcut set: new notebook, notebook switcher, export, settings (plus editor-native undo/redo) | Small surface for v1 | decided | user |
-| D35 | Default accent blue; all six house accents selectable | House style | decided | user + design skill |
-| D36 | Type: IBM Plex Sans (UI) + IBM Plex Mono (editor), one superfamily | Aligned equations, one-family rule satisfied | decided | user + design skill |
-| D37 | Shell: 64 px top bar (title, switcher, actions) + full-bleed editor; settings/help as sheets | Simple, editor-first, mobile-friendly | decided | user |
-| D38 | Themes Light / Dark / OLED; first run follows OS for Light/Dark; OLED opt-in; no first-paint flash; accessibility floor and the twelve bans are hard rules | House style | decided | design skill |
-| A1 | No backend: fully client-side, no accounts, no sync, no telemetry, no network calls after load | User delegated the backend choice; local-first matches the product and privacy story | assumed | recommendation |
-| A2 | Nerdamer pinned exactly at 2.0.0; caret ranges elsewhere, matching ClyTrade | 2.x is young; the adapter keeps an escape hatch | assumed | recommendation |
-| A3 | When definitions conflict, the first definition is authoritative; later conflicting lines are the ones flagged, with the first value as the fix suggestion | "Flag duplicates as errors" needs a deterministic expected value | assumed | recommendation |
-| A4 | First run seeds a welcome notebook with worked examples | Teaches the core loop without a manual | assumed | recommendation |
-| A5 | Placeholder brand icon generated by script (ClyTrade pattern) | Branding is not the v1 problem; swap later | assumed | recommendation |
-| A6 | macOS/Linux artifacts unsigned in v1; signing/notarization deferred and documented | Signing needs paid accounts and CI secrets | assumed | recommendation |
-| A7 | Autosave debounced; notebook list ordered by last edit; titles edited in the top bar | Conventional, frictionless | assumed | recommendation |
-| A8 | `.inlign` files carry no metadata; the title comes from the filename on import | Plain text stays plain | assumed | recommendation |
+| #   | Decision                                                                                                                                                     | Rationale                                                                            | Status  | Source              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ------- | ------------------- |
+| D1  | General-purpose drafting notepad: user writes formulas **and** values; app computes inline and cross-checks written values                                   | The product's reason to exist; checks for mistakes in a drafted solution             | decided | user                |
+| D2  | Symbolic rearrangement **and** numeric solving                                                                                                               | "Solve for unknowns" in both senses                                                  | decided | user                |
+| D3  | Full global constraint solving: the whole document is one system, line order irrelevant                                                                      | Powerful drafting; unresolved cases degrade quietly                                  | decided | user                |
+| D4  | Success = replaces calculator/spreadsheet for target math                                                                                                    | Concrete definition of done                                                          | decided | user                |
+| D5  | Open source, MIT, public GitHub repo                                                                                                                         | Audience and licensing                                                               | decided | user                |
+| D6  | `identifier = expr` is a definition/claim; any other `lhs = rhs` is an equation to solve                                                                     | Simple, keyword-free line semantics                                                  | decided | user                |
+| D7  | Value conflicts: inline error + expected value + one-click fix; never silent edits                                                                           | User text is sacred; mistakes are easy to fix                                        | decided | user                |
+| D8  | Results inline at line end (muted); on narrow screens the result drops to its own indented line                                                              | Keeps the draft readable; never breaks a formula                                     | decided | user                |
+| D9  | Multiple real solutions shown inline, up to four plus a count                                                                                                | Complete answers without flooding the line                                           | decided | user                |
+| D10 | Unresolved symbols show their symbolic form inline                                                                                                           | Drafting keeps flowing while values are missing                                      | decided | user                |
+| D11 | Claim checking respects written precision (claim's last written decimal place; settings can override with a global tolerance)                                | `2.02` for `2.0198` is rounding, not an error                                        | decided | user                |
+| D12 | Parse problems are quiet and inline; a malformed line may simply be prose                                                                                    | Notepad, not a compiler                                                              | decided | user                |
+| D13 | Try-parse every line; whole-line math only — no math inside prose sentences                                                                                  | Predictable and simple; inline segments deferred                                     | decided | user                |
+| D14 | Duplicate definitions with different values are flagged as errors                                                                                            | Stale redefinitions are a common source of silent mistakes                           | decided | user                |
+| D15 | `%` is a percent literal (`20%` = 0.20); modulo stays `mod(a, b)`                                                                                            | Calculator intuition; math convention for the rest                                   | decided | user                |
+| D16 | Radians default; degrees setting ships in v1                                                                                                                 | Math convention, engineering drafting covered                                        | decided | user                |
+| D17 | Smart number display: exact rational when short, else ~12 significant digits, trailing zeros trimmed; precision configurable                                 | Readable by default, exact when exact is cheap                                       | decided | user                |
+| D18 | Prose is plain text; only math lines get highlighting and results                                                                                            | No Markdown machinery in v1                                                          | decided | user                |
+| D19 | Performance target: smooth to ~500 lines, debounced re-solve (150–250 ms), solving in a Web Worker                                                           | Typing must never stutter                                                            | decided | user                |
+| D20 | Delivery: PWA + Tauri v2 wrappers; v1 native artifacts = Windows, macOS, Linux, Android APK; iOS stays PWA                                                   | Matches ClyTrade pattern and "every OS"                                              | decided | user                |
+| D21 | React + TypeScript + Vite, mirroring ClyTrade's toolchain (React 19, TS 6, Vite 8, Tailwind 4, Dexie 4, zod 4, vitest 5, Playwright, ESLint 10, Prettier 3)  | Proven in the author's other project; easy contribution                              | decided | user                |
+| D22 | Nerdamer 2.0.0 behind Inlign's own CAS adapter interface                                                                                                     | The only mature JS CAS with symbolic + numeric solving; adapter keeps it replaceable | decided | user                |
+| D23 | CodeMirror 6, direct integration (no React wrapper), inline widget decorations; solving in a Web Worker                                                      | Purpose-built for inline results; full control; no wrapper lock-in                   | decided | user                |
+| D24 | Persistence: IndexedDB multi-notebook via Dexie; `.inlign` text export/import; JSON backup/restore                                                           | Local-first, mirrors ClyTrade data approach                                          | decided | user                |
+| D25 | English only in v1, typed-dictionary i18n seam in place                                                                                                      | Avoids retrofit; no second locale to maintain yet                                    | decided | user                |
+| D26 | License MIT                                                                                                                                                  | As requested; compatible with Apache-2.0 Nerdamer                                    | decided | user                |
+| D27 | Full ClyTrade repo conventions: AGENTS.md, masterplan.md, CHANGELOG, CONTRIBUTING, in-app docs registry, live.sh, version/bump scripts, screenshots pipeline | One house style across the author's projects                                         | decided | user                |
+| D28 | CI/CD: GitHub Pages PWA deploy + tag-driven release workflow with native artifacts and CHANGELOG                                                             | Proven ClyTrade approach                                                             | decided | user                |
+| D29 | Testing ladder: table-driven engine tests, component tests (Testing Library + fake-indexeddb), Playwright e2e + screenshots                                  | Trustworthy engine is the product; UI flows must be proven                           | decided | user                |
+| D30 | Settings v1: precision & formatting, tolerance override, theme, accent, angle mode, backup export/import                                                     | Everything users need in one place                                                   | decided | user                |
+| D31 | Identity: Inlign · package `inlign` · `com.inlign.app` · v0.1.0 · LAN dev port 7406                                                                          | Confirmed                                                                            | decided | user                |
+| D32 | Single-notebook export format: `.inlign` UTF-8 plain text                                                                                                    | Readable, diffable, future-proof                                                     | decided | user                |
+| D33 | In-app docs pages: Getting started, Syntax reference, How checking works, Engine limits, Data & backup                                                       | Explain the why, not just the how                                                    | decided | user                |
+| D34 | Minimal shortcut set: new notebook, notebook switcher, export, settings (plus editor-native undo/redo)                                                       | Small surface for v1                                                                 | decided | user                |
+| D35 | Default accent blue; all six house accents selectable                                                                                                        | House style                                                                          | decided | user + design skill |
+| D36 | Type: IBM Plex Sans (UI) + IBM Plex Mono (editor), one superfamily                                                                                           | Aligned equations, one-family rule satisfied                                         | decided | user + design skill |
+| D37 | Shell: 64 px top bar (title, switcher, actions) + full-bleed editor; settings/help as sheets                                                                 | Simple, editor-first, mobile-friendly                                                | decided | user                |
+| D38 | Themes Light / Dark / OLED; first run follows OS for Light/Dark; OLED opt-in; no first-paint flash; accessibility floor and the twelve bans are hard rules   | House style                                                                          | decided | design skill        |
+| A1  | No backend: fully client-side, no accounts, no sync, no telemetry, no network calls after load                                                               | User delegated the backend choice; local-first matches the product and privacy story | assumed | recommendation      |
+| A2  | Nerdamer pinned exactly at 2.0.0; caret ranges elsewhere, matching ClyTrade                                                                                  | 2.x is young; the adapter keeps an escape hatch                                      | assumed | recommendation      |
+| A3  | When definitions conflict, the first definition is authoritative; later conflicting lines are the ones flagged, with the first value as the fix suggestion   | "Flag duplicates as errors" needs a deterministic expected value                     | assumed | recommendation      |
+| A4  | First run seeds a welcome notebook with worked examples                                                                                                      | Teaches the core loop without a manual                                               | assumed | recommendation      |
+| A5  | Placeholder brand icon generated by script (ClyTrade pattern)                                                                                                | Branding is not the v1 problem; swap later                                           | assumed | recommendation      |
+| A6  | macOS/Linux artifacts unsigned in v1; signing/notarization deferred and documented                                                                           | Signing needs paid accounts and CI secrets                                           | assumed | recommendation      |
+| A7  | Autosave debounced; notebook list ordered by last edit; titles edited in the top bar                                                                         | Conventional, frictionless                                                           | assumed | recommendation      |
+| A8  | `.inlign` files carry no metadata; the title comes from the filename on import                                                                               | Plain text stays plain                                                               | assumed | recommendation      |
 
 Status values: `decided` (user answered), `assumed` (user delegated; flagged for review).
 
@@ -196,10 +196,10 @@ Pipeline for a document:
 1. **Classify** each line: blank, prose/comment (`#` prefix always prose), or a statement.
    A line that fails to parse is prose, silently.
 2. **Parse** statements through the CAS adapter into expression IR:
-   - *Claim* — `name = constant-expression` (no free symbols): a value the user asserts.
-   - *Definition/formula* — `name = expression` with free symbols: a constraint.
-   - *Equation* — non-identifier LHS: `2*x + 3 = 11`, solved for its unknowns.
-   - *Expression* — bare math: evaluated and shown, no binding.
+   - _Claim_ — `name = constant-expression` (no free symbols): a value the user asserts.
+   - _Definition/formula_ — `name = expression` with free symbols: a constraint.
+   - _Equation_ — non-identifier LHS: `2*x + 3 = 11`, solved for its unknowns.
+   - _Expression_ — bare math: evaluated and shown, no binding.
 3. **Build the constraint system**: symbols → statements; duplicate definitions detected here
    (D14, A3).
 4. **Resolve** values:
@@ -294,14 +294,14 @@ stay on the device unless the user moves them.
 
 ## Risks + rollback
 
-| Risk | Mitigation | Rollback |
-| --- | --- | --- |
-| Nerdamer 2.x is young and its docs/API can shift | Adapter isolates it; golden engine tests; exact pin (A2) | Swap adapter to nerdamer-prime/1.x or another CAS behind the same interface |
-| Global nonlinear solving is not always possible | Documented engine limits; quiet unresolved markers; never emit a guessed number | Ship per-line solving as fallback mode if system solving proves unreliable |
-| Worker + editor annotation plumbing is fiddly | Phased build: engine first with tests, then worker, then editor; protocol is tiny | Run engine on main thread behind the same protocol if the worker path fails |
-| Writing-precision tolerance surprises users | One settings override (D30); docs page explains the rule | Switch default to global tolerance setting |
-| Unsigned macOS/Windows artifacts trigger OS warnings | Documented in release notes; PWA remains a first-class path | Users install the PWA; signing added later |
-| Mobile editing with a device keyboard is awkward | Narrow-screen result layout; ≥16 px editor text (no zoom); no custom keyboard in v1 | Defer Android artifact; PWA still works |
+| Risk                                                 | Mitigation                                                                          | Rollback                                                                    |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Nerdamer 2.x is young and its docs/API can shift     | Adapter isolates it; golden engine tests; exact pin (A2)                            | Swap adapter to nerdamer-prime/1.x or another CAS behind the same interface |
+| Global nonlinear solving is not always possible      | Documented engine limits; quiet unresolved markers; never emit a guessed number     | Ship per-line solving as fallback mode if system solving proves unreliable  |
+| Worker + editor annotation plumbing is fiddly        | Phased build: engine first with tests, then worker, then editor; protocol is tiny   | Run engine on main thread behind the same protocol if the worker path fails |
+| Writing-precision tolerance surprises users          | One settings override (D30); docs page explains the rule                            | Switch default to global tolerance setting                                  |
+| Unsigned macOS/Windows artifacts trigger OS warnings | Documented in release notes; PWA remains a first-class path                         | Users install the PWA; signing added later                                  |
+| Mobile editing with a device keyboard is awkward     | Narrow-screen result layout; ≥16 px editor text (no zoom); no custom keyboard in v1 | Defer Android artifact; PWA still works                                     |
 
 Rollback for deployment is trivial: Pages can be reverted to any earlier commit; native builds
 are released artifacts, never auto-updated. User data lives only on-device with export/backup
