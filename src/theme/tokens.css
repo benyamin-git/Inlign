@@ -22,6 +22,7 @@
 
   --app-ease: cubic-bezier(0.2, 0, 0, 1);
   --app-duration: 160ms;
+  --app-color-scrim: #000000;
 }
 
 [data-theme='light'] {
@@ -108,6 +109,7 @@
   --color-profit: var(--app-color-profit);
   --color-loss: var(--app-color-loss);
   --color-warning: var(--app-color-warning);
+  --color-scrim: var(--app-color-scrim);
 
   --text-lg: 1.25rem;
   --text-lg--line-height: 1.75rem;
