@@ -8,6 +8,37 @@
       content="Inlign — a live mathematical notepad: draft solutions and let the notebook compute and check them as you type."
     />
     <meta name="theme-color" content="#fffbfe" />
+    <script>
+      ;(() => {
+        try {
+          const stored = localStorage.getItem('inlign.theme')
+          const choice =
+            stored === 'light' || stored === 'dark' || stored === 'oled' ? stored : 'system'
+          const resolved =
+            choice === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : choice
+          const storedAccent = localStorage.getItem('inlign.accent')
+          const accent = ['blue', 'teal', 'green', 'orange', 'rose', 'violet'].includes(
+            storedAccent,
+          )
+            ? storedAccent
+            : 'blue'
+          const background =
+            resolved === 'oled' ? '#000000' : resolved === 'dark' ? '#1c1b1f' : '#fffbfe'
+          const root = document.documentElement
+          root.dataset.theme = resolved
+          root.dataset.accent = accent
+          root.style.colorScheme = resolved === 'light' ? 'light' : 'dark'
+          root.style.background = background
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background)
+        } catch {
+          /* storage unavailable */
+        }
+      })()
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

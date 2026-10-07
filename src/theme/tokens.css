@@ -1,0 +1,124 @@
+:root {
+  --app-font-sans:
+    'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI',
+    'Helvetica Neue', sans-serif;
+  --app-font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --app-topbar-h: 4rem;
+  --app-subtabbar-h: 3rem;
+  --app-control-h: 2.5rem;
+  --app-control-h-touch: 3rem;
+  --app-row-h: 2.25rem;
+
+  --app-safe-top: env(safe-area-inset-top, 0px);
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --app-topbar-safe-h: calc(var(--app-topbar-h) + var(--app-safe-top));
+
+  --app-radius-xs: 0.375rem;
+  --app-radius-sm: 0.5rem;
+  --app-radius-md: 0.75rem;
+  --app-radius-lg: 1rem;
+  --app-radius-full: 9999px;
+
+  --app-ease: cubic-bezier(0.2, 0, 0, 1);
+  --app-duration: 160ms;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --app-color-profit: #146c2e;
+  --app-color-loss: #b3261e;
+  --app-color-warning: #7a5900;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --app-color-profit: #6dd58c;
+  --app-color-loss: #f2b8b5;
+  --app-color-warning: #ffdf9e;
+}
+
+// OLED keeps the fixed house neutrals: true black surfaces on the documented
+// ladder, never tinted by the accent.
+[data-theme='oled'] {
+  color-scheme: dark;
+  --md-sys-color-background: #000000;
+  --md-sys-color-on-background: #e8e6ea;
+  --md-sys-color-surface: #000000;
+  --md-sys-color-on-surface: #e8e6ea;
+  --md-sys-color-surface-variant: #1f1f23;
+  --md-sys-color-on-surface-variant: #c8c5cd;
+  --md-sys-color-outline: #6f6a74;
+  --md-sys-color-outline-variant: #46464b;
+  --md-sys-color-inverse-surface: #e8e6ea;
+  --md-sys-color-inverse-on-surface: #1c1b1f;
+  --md-sys-color-surface-container-lowest: #000000;
+  --md-sys-color-surface-container-low: #0a0a0b;
+  --md-sys-color-surface-container: #101012;
+  --md-sys-color-surface-container-high: #17171a;
+  --md-sys-color-surface-container-highest: #1f1f23;
+  --app-color-profit: #6dd58c;
+  --app-color-loss: #ffb4ab;
+  --app-color-warning: #ffdf9e;
+}
+
+@theme inline {
+  --font-sans: var(--app-font-sans);
+  --font-mono: var(--app-font-mono);
+
+  --spacing-topbar: var(--app-topbar-h);
+  --spacing-subtabbar: var(--app-subtabbar-h);
+  --spacing-control: var(--app-control-h);
+  --spacing-control-touch: var(--app-control-h-touch);
+  --spacing-row: var(--app-row-h);
+  --spacing-topbar-safe: var(--app-topbar-safe-h);
+  --spacing-safe-top: var(--app-safe-top);
+  --spacing-safe-bottom: var(--app-safe-bottom);
+
+  --color-primary: var(--md-sys-color-primary);
+  --color-on-primary: var(--md-sys-color-on-primary);
+  --color-primary-container: var(--md-sys-color-primary-container);
+  --color-on-primary-container: var(--md-sys-color-on-primary-container);
+  --color-surface-tint: var(--md-sys-color-surface-tint);
+  --color-inverse-primary: var(--md-sys-color-inverse-primary);
+  --color-secondary: var(--md-sys-color-secondary);
+  --color-on-secondary: var(--md-sys-color-on-secondary);
+  --color-secondary-container: var(--md-sys-color-secondary-container);
+  --color-on-secondary-container: var(--md-sys-color-on-secondary-container);
+  --color-tertiary: var(--md-sys-color-tertiary);
+  --color-on-tertiary: var(--md-sys-color-on-tertiary);
+  --color-tertiary-container: var(--md-sys-color-tertiary-container);
+  --color-on-tertiary-container: var(--md-sys-color-on-tertiary-container);
+  --color-background: var(--md-sys-color-background);
+  --color-on-background: var(--md-sys-color-on-background);
+  --color-surface: var(--md-sys-color-surface);
+  --color-on-surface: var(--md-sys-color-on-surface);
+  --color-surface-variant: var(--md-sys-color-surface-variant);
+  --color-on-surface-variant: var(--md-sys-color-on-surface-variant);
+  --color-outline: var(--md-sys-color-outline);
+  --color-outline-variant: var(--md-sys-color-outline-variant);
+  --color-inverse-surface: var(--md-sys-color-inverse-surface);
+  --color-inverse-on-surface: var(--md-sys-color-inverse-on-surface);
+  --color-surface-container-lowest: var(--md-sys-color-surface-container-lowest);
+  --color-surface-container-low: var(--md-sys-color-surface-container-low);
+  --color-surface-container: var(--md-sys-color-surface-container);
+  --color-surface-container-high: var(--md-sys-color-surface-container-high);
+  --color-surface-container-highest: var(--md-sys-color-surface-container-highest);
+
+  --color-profit: var(--app-color-profit);
+  --color-loss: var(--app-color-loss);
+  --color-warning: var(--app-color-warning);
+
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 2rem;
+  --text-2xl: 2rem;
+  --text-2xl--line-height: 2.5rem;
+
+  --radius-app-xs: var(--app-radius-xs);
+  --radius-app-sm: var(--app-radius-sm);
+  --radius-app-md: var(--app-radius-md);
+  --radius-app-lg: var(--app-radius-lg);
+  --radius-app-full: var(--app-radius-full);
+}
