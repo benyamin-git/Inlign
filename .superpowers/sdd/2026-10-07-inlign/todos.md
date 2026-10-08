@@ -22,4 +22,4 @@
 - [x] T21 Tauri desktop
 - [x] T22 Android
 - [x] T23 CI workflows + version script
-- [ ] T24 v0.1.0 release
+- [x] T24 v0.1.0 release
