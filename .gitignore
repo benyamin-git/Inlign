@@ -3,6 +3,8 @@ dist
 dist-ssr
 dev-dist
 coverage
+test-results
+playwright-report
 *.local
 .DS_Store
 .env
