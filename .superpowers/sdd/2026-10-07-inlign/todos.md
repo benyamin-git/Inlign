@@ -11,7 +11,7 @@
 - [x] T10 Dexie data layer
 - [x] T11 backup + .inlign
 - [x] T12 welcome seeding
-- [ ] T13 i18n seam
+- [x] T13 i18n seam
 - [ ] T14 CodeMirror integration
 - [ ] T15 conflict click-to-fix
 - [ ] T16 shell + switcher + shortcuts

@@ -54,6 +54,10 @@ Task 11: complete (commits 08c3fad..12962b8, tests: npm test → Test Files 25 p
 Task 12: Ruling: the seeded welcome file keeps the spec's ball-drop example but writes v = 19.8 (not the spec mock's 20.6) so it has exactly one deliberate conflict — T7/T8 make the definition, not the claim, drive dependents, so 20.6 would flag a second conflict; a seed test pins the single t = 2.1 conflict (expected 2.019, no errors). Cost if wrong: change one line and its pinned expectation.
 Task 12: complete (commits 12962b8..4e59e06, tests: npm test → Test Files 26 passed (26), Tests 192 passed (192); typecheck/lint/build/format all exit 0)
 
+Task 13: Ruling: translate takes a structural recursive Dictionary (en.ts stays the literal-typed source for TranslationKey) so locales are additions and tests can use fixture dictionaries; missing keys fall back to the key text, unknown {params} stay in place, and the provider defaults to English. Cost if wrong: one signature/fallback change.
+Task 13: Ruling: I18nProvider.tsx keeps the provider and useI18n together per the plan file list with a scoped eslint-disable for react-refresh/only-export-components; a hook-only split would still flag the exported context. Cost if wrong: split the files or add a global allowExportNames entry.
+Task 13: complete (commits 4e59e06..7c6a987, tests: npm test → Test Files 28 passed (28), Tests 200 passed (200); typecheck/lint/build/format all exit 0)
+
 ## Device handoff (2026-10-08)
 
 Ruling: the workspace is force-added to git (files below .superpowers/sdd/2026-10-07-inlign/), because the user asked for a cross-device resume and the ledger is the record; the skill's default is git-ignored scratch. Cost if wrong: scratch files in history; removed with the workspace at plan end. Future task commits should include `git add -f .superpowers/sdd/2026-10-07-inlign` so briefs and ledger travel with the push.
