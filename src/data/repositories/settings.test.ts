@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../db'
 import { DEFAULT_SETTINGS, type Settings } from '../models/settings'
-import { getSettings, updateSettings } from './settings'
+import { getSettings, readSettings, updateSettings } from './settings'
 
 beforeEach(async () => {
   await db.notebooks.clear()
@@ -52,5 +52,15 @@ describe('settings repository', () => {
     const updated = await updateSettings({ id: 'other' } as Partial<Omit<Settings, 'id'>>)
     expect(updated.id).toBe('app')
     await expect(getSettings()).resolves.toEqual(updated)
+  })
+
+  it('reads defaults without writing when no row exists', async () => {
+    await expect(readSettings()).resolves.toEqual(DEFAULT_SETTINGS)
+    await expect(db.settings.count()).resolves.toBe(0)
+  })
+
+  it('reads the stored row when it exists', async () => {
+    await updateSettings({ precision: 9 })
+    await expect(readSettings()).resolves.toEqual({ ...DEFAULT_SETTINGS, precision: 9 })
   })
 })

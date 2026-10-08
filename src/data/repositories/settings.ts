@@ -15,6 +15,10 @@ export async function getSettings(): Promise<Settings> {
   return created
 }
 
+export async function readSettings(): Promise<Settings> {
+  return (await db.settings.get('app')) ?? DEFAULT_SETTINGS
+}
+
 export async function updateSettings(patch: Partial<Omit<Settings, 'id'>>): Promise<Settings> {
   const current = await getSettings()
   const next = SettingsSchema.parse({ ...current, ...patch, id: 'app' })

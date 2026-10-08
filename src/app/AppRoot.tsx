@@ -1,12 +1,22 @@
-import { APP_VERSION } from '@/lib/version'
+import { useEffect, useState } from 'react'
+import { ensureSeeded } from '@/data/seed'
+import { AppShell } from '@/features/shell/AppShell'
+import { I18nProvider } from '@/i18n/I18nProvider'
 
 export function AppRoot() {
-  return (
-    <main className="grid min-h-dvh place-items-center p-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold">Inlign</h1>
-        <p className="mt-2 text-sm">v{APP_VERSION}</p>
-      </div>
-    </main>
-  )
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void ensureSeeded()
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setReady(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return <I18nProvider>{ready ? <AppShell /> : null}</I18nProvider>
 }
