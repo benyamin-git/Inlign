@@ -10,7 +10,7 @@
 - [x] T9 solveDocument + worker
 - [x] T10 Dexie data layer
 - [x] T11 backup + .inlign
-- [ ] T12 welcome seeding
+- [x] T12 welcome seeding
 - [ ] T13 i18n seam
 - [ ] T14 CodeMirror integration
 - [ ] T15 conflict click-to-fix

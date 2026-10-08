@@ -51,6 +51,9 @@ Task 10: complete (commits a20393e..08c3fad, tests: npm test → Test Files 24 p
 Task 11: Ruling: backup filenames map Windows-illegal and control characters to '-', strip trailing dots/spaces and fall back to 'untitled' so an export can never have an empty name; parseBackup and restoreBackup share one zod envelope and raise BackupError with a schema-version message. Cost if wrong: sanitization/error-message tweaks only.
 Task 11: complete (commits 08c3fad..12962b8, tests: npm test → Test Files 25 passed (25), Tests 186 passed (186); typecheck/lint/build/format all exit 0)
 
+Task 12: Ruling: the seeded welcome file keeps the spec's ball-drop example but writes v = 19.8 (not the spec mock's 20.6) so it has exactly one deliberate conflict — T7/T8 make the definition, not the claim, drive dependents, so 20.6 would flag a second conflict; a seed test pins the single t = 2.1 conflict (expected 2.019, no errors). Cost if wrong: change one line and its pinned expectation.
+Task 12: complete (commits 12962b8..4e59e06, tests: npm test → Test Files 26 passed (26), Tests 192 passed (192); typecheck/lint/build/format all exit 0)
+
 ## Device handoff (2026-10-08)
 
 Ruling: the workspace is force-added to git (files below .superpowers/sdd/2026-10-07-inlign/), because the user asked for a cross-device resume and the ledger is the record; the skill's default is git-ignored scratch. Cost if wrong: scratch files in history; removed with the workspace at plan end. Future task commits should include `git add -f .superpowers/sdd/2026-10-07-inlign` so briefs and ledger travel with the push.
