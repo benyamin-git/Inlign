@@ -21,5 +21,5 @@
 - [x] T20 PWA
 - [x] T21 Tauri desktop
 - [x] T22 Android
-- [ ] T23 CI workflows + version script
+- [x] T23 CI workflows + version script
 - [ ] T24 v0.1.0 release
