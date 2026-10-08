@@ -19,7 +19,7 @@
 - [x] T18 docs registry + help
 - [x] T19 Playwright e2e + screenshots
 - [x] T20 PWA
-- [ ] T21 Tauri desktop
+- [x] T21 Tauri desktop
 - [ ] T22 Android
 - [ ] T23 CI workflows + version script
 - [ ] T24 v0.1.0 release
