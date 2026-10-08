@@ -1,0 +1,28 @@
+npm notice run inlign@0.1.0 test
+npm notice run node scripts/env.mjs vitest run
+(node:30569) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30569) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+WARNING: linker: library "/home/benyamin/dev/inlign/node_modules/@tailwindcss/oxide-android-arm64/tailwindcss-oxide.android-arm64.node" ("/home/benyamin/dev/inlign/node_modules/@tailwindcss/oxide-android-arm64/tailwindcss-oxide.android-arm64.node") needed or dlopened by "/data/data/com.termux/files/usr/bin/node" is not accessible for the namespace: [name="(default)", ld_library_paths="", default_library_paths="/system/lib64", permitted_paths="/system/lib64/drm:/system/lib64/extractors:/system/lib64/hw:/system_ext/lib64:/system/framework:/system/app:/system/priv-app:/system_ext/framework:/system_ext/app:/system_ext/priv-app:/vendor/framework:/vendor/app:/vendor/priv-app:/system/vendor/framework:/system/vendor/app:/system/vendor/priv-app:/odm/framework:/odm/app:/odm/priv-app:/oem/app:/product/framework:/product/app:/product/priv-app:/data:/mnt/expand:/apex/com.android.runtime/lib64/bionic:/system/lib64/bootstrap"]
+(node:30569) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30569) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ RUN  v5.0.3 /home/benyamin/dev/inlign
+
+(node:30569) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30569) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  15 passed (15)
+      Tests  62 passed (62)
+   Start at  01:01:36
+   Duration  93.64s (environment 65%, setup 18%, tests 7%, import 5%, transform 4%, worker 2%)
+
+Environment  jsdom was created 15 times · 160.25s total, 65% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

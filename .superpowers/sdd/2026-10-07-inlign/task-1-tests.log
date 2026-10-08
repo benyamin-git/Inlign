@@ -1,0 +1,24 @@
+npm notice run inlign@0.1.0 test
+npm notice run node scripts/env.mjs vitest run
+(node:9604) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9604) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+WARNING: linker: library "/home/benyamin/dev/inlign/node_modules/@tailwindcss/oxide-android-arm64/tailwindcss-oxide.android-arm64.node" ("/home/benyamin/dev/inlign/node_modules/@tailwindcss/oxide-android-arm64/tailwindcss-oxide.android-arm64.node") needed or dlopened by "/data/data/com.termux/files/usr/bin/node" is not accessible for the namespace: [name="(default)", ld_library_paths="", default_library_paths="/system/lib64", permitted_paths="/system/lib64/drm:/system/lib64/extractors:/system/lib64/hw:/system_ext/lib64:/system/framework:/system/app:/system/priv-app:/system_ext/framework:/system_ext/app:/system_ext/priv-app:/vendor/framework:/vendor/app:/vendor/priv-app:/system/vendor/framework:/system/vendor/app:/system/vendor/priv-app:/odm/framework:/odm/app:/odm/priv-app:/oem/app:/product/framework:/product/app:/product/priv-app:/data:/mnt/expand:/apex/com.android.runtime/lib64/bionic:/system/lib64/bootstrap"]
+(node:9604) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9604) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ RUN  v5.0.3 /home/benyamin/dev/inlign
+
+(node:9604) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9604) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  4 passed (4)
+      Tests  6 passed (6)
+   Start at  20:18:05
+   Duration  5.46s (environment 70%, setup 17%, transform 9%, import 2%, tests 1%, worker 1%)
+

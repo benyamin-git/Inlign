@@ -1,0 +1,6 @@
+npm notice run inlign@0.1.0 test
+npm notice run node scripts/env.mjs vitest run
+(node:26664) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26664) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

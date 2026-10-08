@@ -1,0 +1,25 @@
+# Inlign execution todos
+- [x] T1 scaffold
+- [x] T2 house docs
+- [x] T3 theme system
+- [x] T4 UI primitives
+- [x] T5 engine types + classifier
+- [x] T6 CAS adapter
+- [ ] T7 constraint resolution
+- [ ] T8 claim checking + annotations
+- [ ] T9 solveDocument + worker
+- [ ] T10 Dexie data layer
+- [ ] T11 backup + .inlign
+- [ ] T12 welcome seeding
+- [ ] T13 i18n seam
+- [ ] T14 CodeMirror integration
+- [ ] T15 conflict click-to-fix
+- [ ] T16 shell + switcher + shortcuts
+- [ ] T17 settings + data controls
+- [ ] T18 docs registry + help
+- [ ] T19 Playwright e2e + screenshots
+- [ ] T20 PWA
+- [ ] T21 Tauri desktop
+- [ ] T22 Android
+- [ ] T23 CI workflows + version script
+- [ ] T24 v0.1.0 release
