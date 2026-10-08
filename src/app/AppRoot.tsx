@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ensureSeeded } from '@/data/seed'
+import { HelpSheet } from '@/features/help/HelpSheet'
 import { AppShell } from '@/features/shell/AppShell'
 import { SettingsSheet } from '@/features/settings/SettingsSheet'
 import { I18nProvider } from '@/i18n/I18nProvider'
@@ -31,6 +32,7 @@ export function AppRoot() {
               onNotebookImported={state.onNotebookImported}
             />
           )}
+          helpSheet={(state) => <HelpSheet open={state.open} onClose={state.onClose} />}
         />
       ) : null}
     </I18nProvider>

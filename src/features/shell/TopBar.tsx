@@ -1,4 +1,4 @@
-import { Download, PanelLeft, Plus, Settings } from 'lucide-react'
+import { CircleQuestionMark, Download, PanelLeft, Plus, Settings } from 'lucide-react'
 import { useI18n } from '@/i18n/I18nProvider'
 import { IconButton } from '@/ui/IconButton'
 
@@ -12,6 +12,7 @@ export interface ShellTopBarProps {
   onNewNotebook: () => void
   onExportNotebook: () => void
   onOpenSettings: () => void
+  onOpenHelp: () => void
 }
 
 export function ShellTopBar({
@@ -24,6 +25,7 @@ export function ShellTopBar({
   onNewNotebook,
   onExportNotebook,
   onOpenSettings,
+  onOpenHelp,
 }: ShellTopBarProps) {
   const { t } = useI18n()
 
@@ -76,6 +78,9 @@ export function ShellTopBar({
         </IconButton>
         <IconButton label={t('shell.openSettings')} onClick={onOpenSettings}>
           <Settings aria-hidden size={20} />
+        </IconButton>
+        <IconButton label={t('shell.openHelp')} onClick={onOpenHelp}>
+          <CircleQuestionMark aria-hidden size={20} />
         </IconButton>
       </div>
     </header>

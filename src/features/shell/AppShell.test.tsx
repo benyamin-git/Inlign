@@ -6,7 +6,12 @@ import { db } from '@/data/db'
 import { createNotebook, getNotebook, listNotebooks } from '@/data/repositories/notebooks'
 import { I18nProvider } from '@/i18n/I18nProvider'
 import { MockWorker } from '@/test/mockWorker'
-import { AppShell, type AppShellProps, type SettingsSheetState } from './AppShell'
+import {
+  AppShell,
+  type AppShellProps,
+  type HelpSheetState,
+  type SettingsSheetState,
+} from './AppShell'
 
 function renderShell(props: AppShellProps = {}) {
   return render(
@@ -161,6 +166,29 @@ describe('AppShell', () => {
 
     fireEvent.keyDown(window, { key: ',', ctrlKey: true })
     expect(await screen.findByRole('button', { name: 'close-settings' })).toBeInTheDocument()
+  })
+
+  it('opens the help sheet through the action and the shortcut', async () => {
+    const user = userEvent.setup()
+    await createNotebook('Only', 'x = 1')
+    const helpSheet = vi.fn((state: HelpSheetState) =>
+      state.open ? (
+        <button type="button" onClick={state.onClose}>
+          close-help
+        </button>
+      ) : null,
+    )
+    renderShell({ helpSheet })
+    await screen.findByDisplayValue('Only')
+
+    await user.click(screen.getByRole('button', { name: 'Help' }))
+    await user.click(await screen.findByRole('button', { name: 'close-help' }))
+    await waitFor(() => {
+      expect(helpSheet).toHaveBeenCalledWith(expect.objectContaining({ open: false }))
+    })
+
+    fireEvent.keyDown(window, { key: '/', ctrlKey: true })
+    expect(await screen.findByRole('button', { name: 'close-help' })).toBeInTheDocument()
   })
 
   it('opens the switcher through Mod+K', async () => {

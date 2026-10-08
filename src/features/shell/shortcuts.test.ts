@@ -7,6 +7,7 @@ function createActions(): AppShortcuts {
     openSwitcher: vi.fn(),
     exportNotebook: vi.fn(),
     openSettings: vi.fn(),
+    openHelp: vi.fn(),
   }
 }
 
@@ -35,7 +36,7 @@ afterEach(() => {
 })
 
 describe('registerAppShortcuts', () => {
-  it('maps Mod+N, Mod+K, Mod+E and Mod+comma to their actions', () => {
+  it('maps Mod+N, Mod+K, Mod+E, Mod+comma and Mod+slash to their actions', () => {
     const actions = createActions()
     const unregister = registerAppShortcuts(actions)
 
@@ -43,11 +44,13 @@ describe('registerAppShortcuts', () => {
     press('k', { meta: true })
     press('e', { ctrl: true })
     press(',', { ctrl: true })
+    press('/', { ctrl: true })
 
     expect(actions.newNotebook).toHaveBeenCalledTimes(1)
     expect(actions.openSwitcher).toHaveBeenCalledTimes(1)
     expect(actions.exportNotebook).toHaveBeenCalledTimes(1)
     expect(actions.openSettings).toHaveBeenCalledTimes(1)
+    expect(actions.openHelp).toHaveBeenCalledTimes(1)
     unregister()
   })
 
@@ -59,11 +62,13 @@ describe('registerAppShortcuts', () => {
     press('k', { meta: true })
     press('e', { meta: true })
     press(',', { meta: true })
+    press('/', { meta: true })
 
     expect(actions.newNotebook).toHaveBeenCalledTimes(1)
     expect(actions.openSwitcher).toHaveBeenCalledTimes(1)
     expect(actions.exportNotebook).toHaveBeenCalledTimes(1)
     expect(actions.openSettings).toHaveBeenCalledTimes(1)
+    expect(actions.openHelp).toHaveBeenCalledTimes(1)
     unregister()
   })
 

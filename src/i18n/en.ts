@@ -7,6 +7,7 @@ export const en = {
     newNotebook: 'New notebook',
     exportNotebook: 'Export notebook',
     openSettings: 'Settings',
+    openHelp: 'Help',
     titleLabel: 'Notebook title',
     saving: 'Saving…',
     saved: 'Saved',
@@ -68,6 +69,32 @@ export const en = {
     restoreBackupConfirm: 'Restore',
     restoreBackupDone: 'Backup restored.',
     actionFailed: 'Something went wrong. Nothing was changed.',
+  },
+  docs: {
+    title: 'Help',
+    back: 'All topics',
+    entries: {
+      gettingStarted: {
+        title: 'Getting started',
+        summary: 'Write your first formulas and see results as you type.',
+      },
+      syntax: {
+        title: 'Syntax reference',
+        summary: 'Statement shapes, operators, functions, and constants.',
+      },
+      checking: {
+        title: 'How checking works',
+        summary: 'Why values get flagged and what written precision means.',
+      },
+      engineLimits: {
+        title: 'Engine limits',
+        summary: 'What is guaranteed, what is best-effort, and what is out of scope.',
+      },
+      data: {
+        title: 'Data & backup',
+        summary: 'Where notebooks live and how to protect or move them.',
+      },
+    },
   },
   editor: {
     ariaLabel: 'Notebook editor',

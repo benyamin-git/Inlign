@@ -3,6 +3,7 @@ export interface AppShortcuts {
   openSwitcher(): void
   exportNotebook(): void
   openSettings(): void
+  openHelp(): void
 }
 
 interface ShortcutBinding {
@@ -15,6 +16,7 @@ const SHORTCUTS: readonly ShortcutBinding[] = [
   { key: 'k', run: (actions) => actions.openSwitcher() },
   { key: 'e', run: (actions) => actions.exportNotebook() },
   { key: ',', run: (actions) => actions.openSettings() },
+  { key: '/', run: (actions) => actions.openHelp() },
 ]
 
 export function registerAppShortcuts(actions: AppShortcuts): () => void {

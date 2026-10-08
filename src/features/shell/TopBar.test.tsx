@@ -14,6 +14,7 @@ function renderTopBar(overrides: Partial<ShellTopBarProps> = {}) {
     onNewNotebook: vi.fn(),
     onExportNotebook: vi.fn(),
     onOpenSettings: vi.fn(),
+    onOpenHelp: vi.fn(),
     ...overrides,
   }
   render(
@@ -32,6 +33,7 @@ describe('ShellTopBar', () => {
     expect(screen.getByRole('button', { name: 'New notebook' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Export notebook' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Help' })).toBeInTheDocument()
   })
 
   it('commits an edited title on blur', async () => {
@@ -84,6 +86,7 @@ describe('ShellTopBar', () => {
           onNewNotebook={() => undefined}
           onExportNotebook={() => undefined}
           onOpenSettings={() => undefined}
+          onOpenHelp={() => undefined}
         />
       </I18nProvider>,
     )
@@ -100,6 +103,7 @@ describe('ShellTopBar', () => {
           onNewNotebook={() => undefined}
           onExportNotebook={() => undefined}
           onOpenSettings={() => undefined}
+          onOpenHelp={() => undefined}
         />
       </I18nProvider>,
     )
@@ -112,10 +116,12 @@ describe('ShellTopBar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'New notebook' }))
     await userEvent.click(screen.getByRole('button', { name: 'Export notebook' }))
     await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Help' }))
 
     expect(props.onOpenSwitcher).toHaveBeenCalledTimes(1)
     expect(props.onNewNotebook).toHaveBeenCalledTimes(1)
     expect(props.onExportNotebook).toHaveBeenCalledTimes(1)
     expect(props.onOpenSettings).toHaveBeenCalledTimes(1)
+    expect(props.onOpenHelp).toHaveBeenCalledTimes(1)
   })
 })

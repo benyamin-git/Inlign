@@ -27,8 +27,14 @@ export interface SettingsSheetState {
   onNotebookImported: (notebook: Notebook) => void
 }
 
+export interface HelpSheetState {
+  open: boolean
+  onClose: () => void
+}
+
 export interface AppShellProps {
   settingsSheet?: (state: SettingsSheetState) => ReactNode
+  helpSheet?: (state: HelpSheetState) => ReactNode
 }
 
 interface ContentDraft {
@@ -36,7 +42,7 @@ interface ContentDraft {
   content: string
 }
 
-export function AppShell({ settingsSheet }: AppShellProps) {
+export function AppShell({ settingsSheet, helpSheet }: AppShellProps) {
   const { t } = useI18n()
   const notebooks = useLiveQuery(() => listNotebooks(), [])
   const settings = useLiveQuery(() => readSettings(), [], DEFAULT_SETTINGS)
@@ -44,6 +50,7 @@ export function AppShell({ settingsSheet }: AppShellProps) {
   const [draft, setDraft] = useState<ContentDraft>({ id: null, content: '' })
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   const selected =
     selectedId === null ? undefined : notebooks?.find((notebook) => notebook.id === selectedId)
@@ -80,6 +87,7 @@ export function AppShell({ settingsSheet }: AppShellProps) {
         openSwitcher: () => setSwitcherOpen(true),
         exportNotebook: handleExport,
         openSettings: () => setSettingsOpen(true),
+        openHelp: () => setHelpOpen(true),
       }),
     [handleNew, handleExport],
   )
@@ -100,6 +108,7 @@ export function AppShell({ settingsSheet }: AppShellProps) {
         }}
         onExportNotebook={handleExport}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenHelp={() => setHelpOpen(true)}
       />
       <main className="min-h-0 flex-1">
         {current === null ? (
@@ -145,6 +154,10 @@ export function AppShell({ settingsSheet }: AppShellProps) {
         onClose: () => setSettingsOpen(false),
         notebook: current,
         onNotebookImported: (notebook) => setSelectedId(notebook.id),
+      })}
+      {helpSheet?.({
+        open: helpOpen,
+        onClose: () => setHelpOpen(false),
       })}
     </div>
   )
