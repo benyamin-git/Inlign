@@ -64,6 +64,11 @@ Task 14: Ruling: result widgets prefix "= " only for bare values; equation texts
 Task 14: Ruling: useSolveWorker re-posts the last text whenever angleMode/precision/toleranceOverride change, so T17's precision change re-solves through the same seam — cost if wrong: remove one effect.
 Task 14: complete (commits 7c6a987..3cfdf5c, tests: npm test → Test Files 33 passed (33), Tests 216 passed (216); typecheck/lint/build/format all exit 0)
 
+Task 15: Ruling: AnnotationWidget.ignoreEvent() returns false (annotations.ts, T14 file touched) because CodeMirror widgets swallow DOM events by default and contentDOM click handlers never saw the fix button — cost if wrong: click-to-fix dead, revert the three-line override.
+Task 15: Ruling: fix affordances follow annotation.fix, not kind, so duplicate errors (A3/T8 carry a fix) are clickable; fix-less errors and unresolved stay quiet warning notes with hover detail only — cost if wrong: restrict the button in annotations.ts to kind === 'conflict'.
+Task 15: Ruling: hover detail and the inline button's aria-label come from the component's useI18n via an EditorLabels object; aria labels are synced in an update listener because ViewPlugin.update runs before the DOM redraw — cost if wrong: labels set one transaction late or read from the default dictionary.
+Task 15: complete (commits 3cfdf5c..8d9deb9, tests: npm test → Test Files 34 passed (34), Tests 220 passed (220); typecheck/lint/build/format all exit 0)
+
 ## Device handoff (2026-10-08)
 
 Ruling: the workspace is force-added to git (files below .superpowers/sdd/2026-10-07-inlign/), because the user asked for a cross-device resume and the ledger is the record; the skill's default is git-ignored scratch. Cost if wrong: scratch files in history; removed with the workspace at plan end. Future task commits should include `git add -f .superpowers/sdd/2026-10-07-inlign` so briefs and ledger travel with the push.

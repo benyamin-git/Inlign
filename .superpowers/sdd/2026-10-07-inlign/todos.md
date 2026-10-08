@@ -13,7 +13,7 @@
 - [x] T12 welcome seeding
 - [x] T13 i18n seam
 - [x] T14 CodeMirror integration
-- [ ] T15 conflict click-to-fix
+- [x] T15 conflict click-to-fix
 - [ ] T16 shell + switcher + shortcuts
 - [ ] T17 settings + data controls
 - [ ] T18 docs registry + help
