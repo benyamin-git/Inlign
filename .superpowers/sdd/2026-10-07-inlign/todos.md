@@ -5,7 +5,7 @@
 - [x] T4 UI primitives
 - [x] T5 engine types + classifier
 - [x] T6 CAS adapter
-- [ ] T7 constraint resolution
+- [x] T7 constraint resolution
 - [ ] T8 claim checking + annotations
 - [ ] T9 solveDocument + worker
 - [ ] T10 Dexie data layer

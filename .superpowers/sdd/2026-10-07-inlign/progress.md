@@ -25,6 +25,13 @@ Task 6: Ruling: degrees mode wraps trig calls in the input before parse, not bef
 Task 6: Environment note: vitest startup deadlocked repeatedly on this device (WASI rolldown worker, no RUN banner, system otherwise idle); identical runs pass on retry — no code cause identified. Backgrounding the run did not change the outcome.
 Task 6: complete (commits 2c21d81..f1fca54, tests: node scripts/env.mjs vitest run cas → 29/29; full suite node scripts/env.mjs vitest run → Test Files 17 passed (17), Tests 110 passed (110); typecheck/lint/build/format all exit 0)
 
+Task 7: Ruling: duplicates compare exact trimmed RHS text; first definition (else first claim) is the model; a claim sharing a symbol with a definition is never flagged as duplicate (claim checking owns it, T8); flagged later statements are excluded from resolution by line. Cost if wrong: swap text equality for a CAS-normalized comparison in buildSystem.
+Task 7: Ruling: multi-valued (`multiple`) symbols do not propagate into dependents; dependents stay symbolic rather than guessing a branch. Cost if wrong: branch enumeration in a later task.
+Task 7: Ruling: coupled solving clusters unresolved statements into connected components over shared unknowns and calls solveSystem per component; a failed component leaves its symbols symbolic. Cost if wrong: clustering internals only.
+Task 7: Ruling: resolveSystem keeps the planned settings parameter but reads it only as a placeholder; angle mode is carried by the adapter and precision/tolerance first matter in T8. Cost if wrong: one-line removal or a real use.
+Task 7: Ruling: symbolic text is the substituted RHS for bound symbols; for equation/expression unknowns it is the substituted implicit node of the first mentioning statement. Cost if wrong: T8 owns display formatting anyway.
+Task 7: complete (commits 4bdd02f..09de471, tests: npm test → Test Files 18 passed (18), Tests 124 passed (124); typecheck/lint/build/format all exit 0)
+
 ## Device handoff (2026-10-08)
 
 Ruling: the workspace is force-added to git (files below .superpowers/sdd/2026-10-07-inlign/), because the user asked for a cross-device resume and the ledger is the record; the skill's default is git-ignored scratch. Cost if wrong: scratch files in history; removed with the workspace at plan end. Future task commits should include `git add -f .superpowers/sdd/2026-10-07-inlign` so briefs and ledger travel with the push.
@@ -47,3 +54,8 @@ Environment caveats (Android/Termux device used for T1–T6):
 - Preferred commands: `node scripts/env.mjs vitest run [filter] --maxWorkers=1 --no-file-parallelism`; `npm run typecheck|lint|build|format`.
 - npm installs: `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --prefer-offline ...` (update-notifier disabled in .npmrc). WASI fallbacks in scripts/env.mjs + scripts/wasm-fallbacks.mjs are no-ops off Android.
 - Do not push tags: tag pushes deploy the PWA (release happens at T24). Plain `git push` of the branch is safe.
+
+Device note (2026-10-08, Windows/x64):
+- Node 24.20.0, npm 11.19.0; the WASI fallbacks and their scripts are no-ops here.
+- Full suite ~3s warm, no stalls; the Android gate timeouts above are not needed on this machine.
+- Playwright browsers are not downloaded yet: run `npx playwright install` before T19.
