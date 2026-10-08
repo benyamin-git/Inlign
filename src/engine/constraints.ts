@@ -7,7 +7,7 @@ export interface ConstraintSystem {
   duplicates: Annotation[]
 }
 
-function rhsFix(statement: Statement, insert: string): AnnotationFix {
+export function rhsFix(statement: Statement, insert: string): AnnotationFix {
   const equals = statement.text.indexOf('=')
   let start = equals + 1
   while (statement.text[start] === ' ') start += 1
