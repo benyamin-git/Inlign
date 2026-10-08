@@ -44,6 +44,10 @@ Task 9: Ruling: handleRequest catches every engine throw and answers `<version> 
 Task 9: Ruling: the worker echoes request.version; stale-response dropping stays UI-side (T14), per the spec's worker protocol. Cost if wrong: none observed.
 Task 9: complete (commits b5e959c..a20393e, tests: npm test → Test Files 21 passed (21), Tests 152 passed (152); typecheck/lint/build/format all exit 0)
 
+Task 10: Ruling: Settings uses the canonical types from their home modules — ThemeChoice (per the T3↔T10 pre-flight ruling), AccentId from src/theme/accents, AngleMode from src/engine/types — instead of re-declaring a local ThemeId; cost if wrong: inline literal unions in the model.
+Task 10: Ruling: writes to a missing notebook are no-ops (defensive against autosave races) and SettingsSchema bounds precision to 8–15, matching the planned T17 control; cost if wrong: throw instead of no-op / widen the schema bounds.
+Task 10: complete (commits a20393e..08c3fad, tests: npm test → Test Files 24 passed (24), Tests 172 passed (172); typecheck/lint/build/format all exit 0)
+
 ## Device handoff (2026-10-08)
 
 Ruling: the workspace is force-added to git (files below .superpowers/sdd/2026-10-07-inlign/), because the user asked for a cross-device resume and the ledger is the record; the skill's default is git-ignored scratch. Cost if wrong: scratch files in history; removed with the workspace at plan end. Future task commits should include `git add -f .superpowers/sdd/2026-10-07-inlign` so briefs and ledger travel with the push.
