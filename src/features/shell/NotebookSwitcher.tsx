@@ -169,11 +169,7 @@ export function NotebookSwitcher({
             <Button variant="text" onClick={() => setDeleting(null)}>
               {t('switcher.cancelDelete')}
             </Button>
-            <Button
-              variant="text"
-              className="text-loss hover:bg-loss/10 active:bg-loss/15"
-              onClick={confirmDelete}
-            >
+            <Button variant="destructive" onClick={confirmDelete}>
               {t('switcher.deleteConfirm')}
             </Button>
           </>

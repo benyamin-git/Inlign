@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { notebookToFile } from '@/data/backup'
 import type { Notebook } from '@/data/models/notebook'
 import { DEFAULT_SETTINGS } from '@/data/models/settings'
 import {
@@ -13,6 +12,7 @@ import {
 import { readSettings } from '@/data/repositories/settings'
 import { NotebookEditor } from '@/features/notebook/NotebookEditor'
 import { useAutosave } from '@/features/notebook/useAutosave'
+import { exportNotebookFile } from '@/features/settings/dataActions'
 import { useI18n } from '@/i18n/I18nProvider'
 import { Button } from '@/ui/Button'
 import { EmptyState } from '@/ui/EmptyState'
@@ -34,16 +34,6 @@ export interface AppShellProps {
 interface ContentDraft {
   id: string | null
   content: string
-}
-
-function downloadNotebookFile(notebook: Notebook): void {
-  const { filename, text } = notebookToFile(notebook)
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }))
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = filename
-  anchor.click()
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 export function AppShell({ settingsSheet }: AppShellProps) {
@@ -70,7 +60,7 @@ export function AppShell({ settingsSheet }: AppShellProps) {
 
   const handleExport = useCallback(() => {
     if (current === null) return
-    downloadNotebookFile(current)
+    void exportNotebookFile(current).catch(() => undefined)
   }, [current])
 
   const handleChange = useCallback(

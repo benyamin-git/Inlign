@@ -50,3 +50,7 @@ export function writeStoredAccent(accent: AccentId): void {
     // storage unavailable
   }
 }
+
+export function applyAccent(accent: AccentId): void {
+  document.documentElement.dataset.accent = accent
+}
