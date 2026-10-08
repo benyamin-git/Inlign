@@ -3,6 +3,7 @@
 **Status:** Approved
 **Date:** 2026-10-07
 **Repo:** `github.com/benyamin-git/Inlign` · MIT · v0.1.0
+**Implemented:** 2026-10-08 — the plan in `docs/superpowers/plans/2026-10-07-inlign.md` shipped as v0.1.0; this spec stays as the approved historical record of the design.
 
 ---
 
