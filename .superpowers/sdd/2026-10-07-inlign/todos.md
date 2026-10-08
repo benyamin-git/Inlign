@@ -15,7 +15,7 @@
 - [x] T14 CodeMirror integration
 - [x] T15 conflict click-to-fix
 - [x] T16 shell + switcher + shortcuts
-- [ ] T17 settings + data controls
+- [x] T17 settings + data controls
 - [ ] T18 docs registry + help
 - [ ] T19 Playwright e2e + screenshots
 - [ ] T20 PWA

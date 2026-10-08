@@ -76,6 +76,12 @@ Task 16: Ruling: autosave skips writes when content already matches the stored n
 Task 16: Ruling: react-hooks v7 (recommended-latest) bans setState in effect bodies and ref reads during render, so TopBar is an uncontrolled keyed title input, NotebookSwitcher resets inline edit/delete state in its close/select/create handlers, useAutosave derives `saving` from a saved-signature state instead of setting it in effects, and AppShell derives the current notebook (selectedId, falling back to the most recently updated) instead of a selection effect with a pending-select ref. Cost if wrong: restore effect-based sync with targeted lint suppressions.
 Task 16: complete (commits 8d9deb9..a9dfbf2, tests: npm test → Test Files 39 passed (39), Tests 258 passed (258); typecheck/lint/build/format all exit 0)
 
+Task 17: Ruling: destructive Button variant added to src/ui/variants.ts (and T16's delete-confirm switched to it) — Tailwind sorts same-property color utilities alphabetically, so the variant's text-primary beats a text-loss className override; the variant has no conflict. Cost if wrong: revert to explicit loss classes with !important.
+Task 17: Ruling: the restore confirmation Dialog opens before the file picker; restoreBackupFile() then picks, parses, and applies, returning false on cancel and throwing BackupError on a bad file, which the sheet turns into the failure toast. Cost if wrong: split parse/apply so the dialog can show after picking.
+Task 17: Ruling: applyAccent() added to src/theme/accents.ts (mirrors applyTheme) so runtime accent changes set data-accent; writeStoredAccent already feeds the pre-paint script. Cost if wrong: inline dataset write in the sheet.
+Task 17: Ruling: dataActions web path uses anchor download + <input type="file"> (no File System Access API) and keeps the documented four-function interface; T21 adds the IS_NATIVE dialog/fs branch behind it. Cost if wrong: add the picker API branch here instead.
+Task 17: complete (commits a9dfbf2..680ba4a, tests: npm test → Test Files 41 passed (41), Tests 275 passed (275); typecheck/lint/build/format all exit 0)
+
 ## Device handoff (2026-10-08)
 
 Ruling: the workspace is force-added to git (files below .superpowers/sdd/2026-10-07-inlign/), because the user asked for a cross-device resume and the ledger is the record; the skill's default is git-ignored scratch. Cost if wrong: scratch files in history; removed with the workspace at plan end. Future task commits should include `git add -f .superpowers/sdd/2026-10-07-inlign` so briefs and ledger travel with the push.
