@@ -18,7 +18,7 @@
 - [x] T17 settings + data controls
 - [x] T18 docs registry + help
 - [x] T19 Playwright e2e + screenshots
-- [ ] T20 PWA
+- [x] T20 PWA
 - [ ] T21 Tauri desktop
 - [ ] T22 Android
 - [ ] T23 CI workflows + version script
