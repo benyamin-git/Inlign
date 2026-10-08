@@ -1,11 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { EditorState } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
+import { EditorView, keymap } from '@codemirror/view'
 import type { SolveSettings } from '@/engine/types'
 import { useI18n } from '@/i18n/I18nProvider'
 import { useIsNarrow } from '@/lib/media'
 import { setAnnotations, setNarrow } from './editor/annotations'
+import { conflictFixClicks, conflictFixKeymap } from './editor/conflictFix'
 import { createEditorExtensions } from './editor/setup'
+import { annotationTooltips, type EditorLabels } from './editor/tooltips'
 import { useSolveWorker } from './useSolveWorker'
 
 export interface NotebookEditorProps {
@@ -23,6 +25,16 @@ export function NotebookEditor({ value, settings, onChange }: NotebookEditorProp
   const onChangeRef = useRef(onChange)
   const valueRef = useRef(value)
   const label = t('editor.ariaLabel')
+  const labels = useMemo<EditorLabels>(
+    () => ({
+      conflict: (expected) => t('editor.conflictDetail', { expected }),
+      duplicate: (expected) => t('editor.duplicateDetail', { expected }),
+      replace: t('editor.replaceWithComputed'),
+      error: t('editor.errorDetail'),
+      unresolved: t('editor.unresolvedDetail'),
+    }),
+    [t],
+  )
 
   useEffect(() => {
     onChangeRef.current = onChange
@@ -39,13 +51,18 @@ export function NotebookEditor({ value, settings, onChange }: NotebookEditorProp
       parent,
       state: EditorState.create({
         doc: valueRef.current,
-        extensions: createEditorExtensions({
-          label,
-          onDocChange: (doc) => {
-            onChangeRef.current(doc)
-            requestSolve(doc)
-          },
-        }),
+        extensions: [
+          keymap.of(conflictFixKeymap()),
+          conflictFixClicks(),
+          annotationTooltips(labels),
+          createEditorExtensions({
+            label,
+            onDocChange: (doc) => {
+              onChangeRef.current(doc)
+              requestSolve(doc)
+            },
+          }),
+        ],
       }),
     })
     viewRef.current = view
@@ -54,7 +71,7 @@ export function NotebookEditor({ value, settings, onChange }: NotebookEditorProp
       view.destroy()
       viewRef.current = null
     }
-  }, [label, requestSolve])
+  }, [label, labels, requestSolve])
 
   useEffect(() => {
     const view = viewRef.current

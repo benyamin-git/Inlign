@@ -65,6 +65,10 @@ class AnnotationWidget extends WidgetType {
     return other.annotation === this.annotation && other.narrow === this.narrow
   }
 
+  ignoreEvent(): boolean {
+    return false
+  }
+
   toDOM(): HTMLElement {
     const { annotation, narrow } = this
     if (annotation.kind === 'result') {
