@@ -16,7 +16,7 @@
 - [x] T15 conflict click-to-fix
 - [x] T16 shell + switcher + shortcuts
 - [x] T17 settings + data controls
-- [ ] T18 docs registry + help
+- [x] T18 docs registry + help
 - [ ] T19 Playwright e2e + screenshots
 - [ ] T20 PWA
 - [ ] T21 Tauri desktop

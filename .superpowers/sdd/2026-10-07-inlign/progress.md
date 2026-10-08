@@ -82,6 +82,12 @@ Task 17: Ruling: applyAccent() added to src/theme/accents.ts (mirrors applyTheme
 Task 17: Ruling: dataActions web path uses anchor download + <input type="file"> (no File System Access API) and keeps the documented four-function interface; T21 adds the IS_NATIVE dialog/fs branch behind it. Cost if wrong: add the picker API branch here instead.
 Task 17: complete (commits a9dfbf2..680ba4a, tests: npm test → Test Files 41 passed (41), Tests 275 passed (275); typecheck/lint/build/format all exit 0)
 
+Task 18: Ruling: DocEntry carries titleKey/summaryKey typed as TranslationKey alongside the plan's id union and body loader, so HelpSheet translates without casts and the registry test verifies every key against en directly — cost if wrong: widen both to string and cast at the two t() call sites.
+Task 18: Ruling: help is wired through an AppShell render slot (`helpSheet`, HelpSheetState) mirroring settingsSheet, with Mod+/ added to registerAppShortcuts and a Help action in the top bar — cost if wrong: import HelpSheet directly in AppShell and drop the slot prop.
+Task 18: Ruling: doc bodies avoid GFM-only markdown (tables, strikethrough) because react-markdown ships without remark-gfm and no new dependencies are allowed; lists carry the same content — cost if wrong: add remark-gfm and rewrite the affected sections as tables.
+Task 18: Environment note: the first full-suite run after the wiring failed one pre-existing AppShell test (its solution worker mounted with `Worker is not defined`, leaving the editor empty) while the other 282 passed; the file alone and the immediate full rerun are green — parallel-load flake, no code cause identified (same class as the T6 startup stalls).
+Task 18: complete (commits 680ba4a..cf3da30, tests: npm test → Test Files 43 passed (43), Tests 283 passed (283); typecheck/lint/build/format all exit 0)
+
 ## Device handoff (2026-10-08)
 
 Ruling: the workspace is force-added to git (files below .superpowers/sdd/2026-10-07-inlign/), because the user asked for a cross-device resume and the ledger is the record; the skill's default is git-ignored scratch. Cost if wrong: scratch files in history; removed with the workspace at plan end. Future task commits should include `git add -f .superpowers/sdd/2026-10-07-inlign` so briefs and ledger travel with the push.
