@@ -32,6 +32,13 @@ Task 7: Ruling: resolveSystem keeps the planned settings parameter but reads it 
 Task 7: Ruling: symbolic text is the substituted RHS for bound symbols; for equation/expression unknowns it is the substituted implicit node of the first mentioning statement. Cost if wrong: T8 owns display formatting anyway.
 Task 7: complete (commits 4bdd02f..09de471, tests: npm test → Test Files 18 passed (18), Tests 124 passed (124); typecheck/lint/build/format all exit 0)
 
+Task 8: Ruling: conflicts format expected (and the fix insert) with two decimal places more than the claim wrote, so the mismatch is visible and the inserted fix re-checks clean — matches the spec mock and T15 manual (`t = 2.1` → `2.019`); results use settings.precision (D17). Cost if wrong: one formatExpected call site.
+Task 8: Ruling: buildAnnotations takes cas (the plan signature omitted it) for expression results, constant-equation checks and substituted unresolved text. Cost if wrong: parameter reshuffle.
+Task 8: Ruling: annotation.text is a display payload only (formatted value, solution list or symbolic text); the UI composes words around it via i18n. Claims show the model value as their result; equations prefix the unknown (`x = 2 or -2`). Cost if wrong: UI strips the prefix; one string change.
+Task 8: Ruling: constant equations emit nothing when satisfied and an error (empty text) when contradicted; unsolvable equations are errors; unresolved/unsolvable claims and definitions are unresolved (empty text when no symbolic form). Cost if wrong: kind remap in annotate.ts.
+Task 8: Ruling: unresolved symbolic text uses CAS canonical form (`1+x`), consistent with T7 equation text, not the written text. Cost if wrong: swap to statement.text for fully unsubstituted expressions.
+Task 8: complete (commits 09de471..b5e959c, tests: npm test → Test Files 19 passed (19), Tests 145 passed (145); typecheck/lint/build/format all exit 0)
+
 ## Device handoff (2026-10-08)
 
 Ruling: the workspace is force-added to git (files below .superpowers/sdd/2026-10-07-inlign/), because the user asked for a cross-device resume and the ledger is the record; the skill's default is git-ignored scratch. Cost if wrong: scratch files in history; removed with the workspace at plan end. Future task commits should include `git add -f .superpowers/sdd/2026-10-07-inlign` so briefs and ledger travel with the push.
