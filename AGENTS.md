@@ -33,7 +33,7 @@ export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
 | `npm run tauri:build`              | Desktop bundles (needs Rust and platform toolchains)                                                                                                                  |
 | `npm run android:init`             | Generate the Android project (first run only)                                                                                                                         |
 | `npm run android:apk`              | Android release APK (needs JDK 17, Android SDK/NDK and Rust)                                                                                                          |
-| `npm run version:set -- <version>` | Bump the version in `package.json` and `src-tauri/tauri.conf.json`                                                                                                    |
+| `npm run version:set -- <version>` | Bump the version in `package.json`, `package-lock.json` and `src-tauri/Cargo.toml`                                                                                    |
 
 Always run `npm run typecheck`, `npm run lint` and `npm test` before finishing work.
 
