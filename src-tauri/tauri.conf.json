@@ -27,6 +27,9 @@
   "bundle": {
     "active": true,
     "targets": ["nsis", "dmg", "appimage", "deb"],
+    "android": {
+      "debugApplicationIdSuffix": ".debug"
+    },
     "category": "Productivity",
     "shortDescription": "Live mathematical notepad",
     "longDescription": "Draft solutions in plain text and let the notebook compute and check them as you type.",

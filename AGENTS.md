@@ -51,11 +51,11 @@ Always run `npm run typecheck`, `npm run lint` and `npm test` before finishing w
 - Documentation bodies live in `src/docs/en/`; registry titles and summaries live
   in `src/docs/registry.ts`, not in the markdown.
 - Never hand-edit generated files (`public/icons/`, `src/theme/accents.css`,
-  `screenshots/**`, `src-tauri/icons/**`). Regenerate them with `npm run icons` /
-  `npm run accents` / `npm run screenshots` / `npm run icons:native`. Accent ids
-  and labels live in `src/theme/accents.ts` and must stay in sync with the seed
-  table in `scripts/generate-accents.mjs`; a test fails if the generated CSS
-  drifts.
+  `screenshots/**`, `src-tauri/icons/**`, `src-tauri/gen/**`). Regenerate them
+  with `npm run icons` / `npm run accents` / `npm run screenshots` /
+  `npm run icons:native` / `npm run android:init`. Accent ids and labels live
+  in `src/theme/accents.ts` and must stay in sync with the seed table in
+  `scripts/generate-accents.mjs`; a test fails if the generated CSS drifts.
 - `screenshots/**` is generated but committed for the README. Never hand-edit the
   PNGs; regenerate them after UI changes that affect the captured screens.
 - Releases: the version lives in `package.json`. Use
@@ -80,6 +80,40 @@ Always run `npm run typecheck`, `npm run lint` and `npm test` before finishing w
   Playwright browser), so a fresh machine needs `npx playwright install chromium`
   before it can regenerate `public/icons/`, same as `npm run test:e2e`.
 
+## Native builds
+
+Native compilation is not part of the local gate ladder; the release workflow
+owns it (`.github/workflows/release.yml` builds the desktop matrix and the
+Android APK on GitHub runners).
+
+Desktop bundles need Rust stable plus the platform toolchains: Microsoft C++
+Build Tools on Windows, Xcode on macOS, and on Linux the WebKitGTK 4.1 dev
+packages (`libwebkit2gtk-4.1-dev`, `libxdo-dev`, `libayatana-appindicator3-dev`,
+`librsvg2-dev`, `libssl-dev`) with the usual build tools. `npm run tauri:build`
+builds the bundles listed in `src-tauri/tauri.conf.json`; `--bundles <list>`
+restricts a build to one platform's installers.
+
+Android additionally needs JDK 17, the Android SDK (platform, build-tools,
+platform-tools, command-line tools), the NDK (side by side) and the four Rust
+targets:
+
+```bash
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+```
+
+Point `JAVA_HOME` at the JDK, `ANDROID_HOME` at the SDK and `NDK_HOME` at
+`$ANDROID_HOME/ndk/<version>` (a literal NDK path; Tauri fails or guesses when
+several NDKs are installed and the variable is unset). Then:
+
+- `npm run android:init` — first run only; generates `src-tauri/gen/android`,
+  which is not committed (the release workflow regenerates it when missing).
+- `npm run android:apk` — release APK, debug-signed until a keystore is
+  configured: `src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk`.
+- `npm run tauri -- android build --apk --debug` — local debug fallback; debug
+  builds get the `com.inlign.app.debug` application id
+  (`bundle.android.debugApplicationIdSuffix`), so they install side by side
+  with a release build.
+
 ## Architecture
 
 | Layer         | Location        | Notes                                                                       |
@@ -92,7 +126,7 @@ Always run `npm run typecheck`, `npm run lint` and `npm test` before finishing w
 | Theme         | `src/theme/`    | MD3 CSS-variable tokens, theme switching, generated accent palettes         |
 | Localization  | `src/i18n/`     | Typed English dictionary with a locale seam                                 |
 | Docs          | `src/docs/`     | Markdown + registry rendered in Help                                        |
-| Native shell  | `src-tauri/`    | Tauri v2 config, Rust entry point and the committed Android project         |
+| Native shell  | `src-tauri/`    | Tauri v2 config, Rust entry point, generated Android project (CI-side)      |
 
 Rules of dependency: features may import `ui`, `data`, `lib`, `theme`, `engine`.
 `engine` imports nothing except its own files and its Nerdamer adapter. `ui`
