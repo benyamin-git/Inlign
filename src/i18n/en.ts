@@ -69,6 +69,8 @@ export const en = {
     restoreBackupConfirm: 'Restore',
     restoreBackupDone: 'Backup restored.',
     actionFailed: 'Something went wrong. Nothing was changed.',
+    filterNotebook: 'Inlign notebooks',
+    filterBackup: 'Inlign backups',
   },
   docs: {
     title: 'Help',
