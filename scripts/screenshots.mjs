@@ -112,6 +112,8 @@ async function main() {
       timezoneId: 'UTC',
     })
     const page = await context.newPage()
+    // Pinned so notebook timestamps and ordering in screenshots are byte-stable.
+    await page.clock.setSystemTime(new Date('2026-01-15T12:00:00Z'))
     await page.goto(BASE_URL)
     await page.getByLabel('Notebook title').waitFor()
     await settle(page)
@@ -133,6 +135,7 @@ async function main() {
     await capture(page, 'help')
     await page.keyboard.press('Escape')
 
+    await page.clock.setSystemTime(new Date('2026-01-15T12:05:00Z'))
     await page.getByRole('button', { name: 'New notebook' }).click()
     await page.waitForFunction(
       () => document.querySelector('input[aria-label="Notebook title"]')?.value === 'Untitled',
