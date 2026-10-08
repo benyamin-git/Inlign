@@ -7,7 +7,7 @@
 - [x] T6 CAS adapter
 - [x] T7 constraint resolution
 - [x] T8 claim checking + annotations
-- [ ] T9 solveDocument + worker
+- [x] T9 solveDocument + worker
 - [ ] T10 Dexie data layer
 - [ ] T11 backup + .inlign
 - [ ] T12 welcome seeding
