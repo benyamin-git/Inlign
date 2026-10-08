@@ -115,3 +115,10 @@ Device note (2026-10-08, Windows/x64):
 - Node 24.20.0, npm 11.19.0; the WASI fallbacks and their scripts are no-ops here.
 - Full suite ~3s warm, no stalls; the Android gate timeouts above are not needed on this machine.
 - Playwright browsers are not downloaded yet: run `npx playwright install` before T19.
+
+Task 19: Ruling: the preview server binds `--host 127.0.0.1` and e2e/screenshot URLs use `http://127.0.0.1:4173`, not the brief's `localhost` — on this machine Vite preview bound `::1` only and Node's IPv6 loopback connects fail with EACCES, so Playwright's webServer probe never saw the server — cost if wrong: revert to localhost once the environment allows it.
+Task 19: Ruling: chromium-1248 and chromium_headless_shell-1248 were seeded into `%LOCALAPPDATA%\ms-playwright` from Google's official chrome-for-testing-public mirror (cdn.playwright.dev closed the connection at 40–90% on all five CLI retries) with `INSTALLATION_COMPLETE` markers, then `npx playwright install chromium` registered them; browser caches are machine-local and not part of the repo — cost if wrong: delete the two cache dirs and retry the CDN on a better link.
+Task 19: Ruling: npm resolved `@playwright/test` and `playwright` together to 1.64.0 (caret drift from the installed 1.63.0; lockfile updated) so the runner and library stay version-paired — cost if wrong: pin both to 1.63.0 exactly.
+Task 19: Ruling: `scripts/screenshots.mjs` runs `vite build` when `dist/` is missing so `npm run screenshots` works standalone; the gate ladder still builds first — cost if wrong: remove the five-line pre-build.
+Task 19: Ruling: the persistence spec scrolls to the document end after reload (click + Control+End) before asserting — CodeMirror only renders the viewport, so the reloaded top-of-file DOM does not contain the typed tail even though IndexedDB does (verified directly) — cost if wrong: false negatives on the persistence flow.
+Task 19: complete (commits cf3da30..f401560, tests: npm test → Test Files 43 passed (43), Tests 283 passed (283); test:e2e → 6 passed (6); typecheck/lint/build/format all exit 0)
