@@ -9,7 +9,7 @@
 - [x] T8 claim checking + annotations
 - [x] T9 solveDocument + worker
 - [x] T10 Dexie data layer
-- [ ] T11 backup + .inlign
+- [x] T11 backup + .inlign
 - [ ] T12 welcome seeding
 - [ ] T13 i18n seam
 - [ ] T14 CodeMirror integration
