@@ -12,7 +12,7 @@
 - [x] T11 backup + .inlign
 - [x] T12 welcome seeding
 - [x] T13 i18n seam
-- [ ] T14 CodeMirror integration
+- [x] T14 CodeMirror integration
 - [ ] T15 conflict click-to-fix
 - [ ] T16 shell + switcher + shortcuts
 - [ ] T17 settings + data controls

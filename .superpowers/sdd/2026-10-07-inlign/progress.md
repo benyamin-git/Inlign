@@ -58,6 +58,12 @@ Task 13: Ruling: translate takes a structural recursive Dictionary (en.ts stays 
 Task 13: Ruling: I18nProvider.tsx keeps the provider and useI18n together per the plan file list with a scoped eslint-disable for react-refresh/only-export-components; a hook-only split would still flag the exported context. Cost if wrong: split the files or add a global allowExportNames entry.
 Task 13: complete (commits 4e59e06..7c6a987, tests: npm test → Test Files 28 passed (28), Tests 200 passed (200); typecheck/lint/build/format all exit 0)
 
+Task 14: Ruling: @codemirror/language 6.13.0 is published broken (its dist imports @codemirror/streamparser, which its manifest omits, so any import fails to resolve); the lock moves to 6.13.1, still inside the declared caret — cost if wrong: pin 6.13.0 plus a direct streamparser dependency.
+Task 14: Ruling: setAnnotations/setNarrow are plain functions returning effect.of(value) because CM6 StateEffect types are not callable (only .of exists); the plan's documented call signature is preserved — cost if wrong: call sites switch to .of.
+Task 14: Ruling: result widgets prefix "= " only for bare values; equation texts already carry "unknown = ..." (T8 ruling) and are rendered verbatim — cost if wrong: one formatting function.
+Task 14: Ruling: useSolveWorker re-posts the last text whenever angleMode/precision/toleranceOverride change, so T17's precision change re-solves through the same seam — cost if wrong: remove one effect.
+Task 14: complete (commits 7c6a987..3cfdf5c, tests: npm test → Test Files 33 passed (33), Tests 216 passed (216); typecheck/lint/build/format all exit 0)
+
 ## Device handoff (2026-10-08)
 
 Ruling: the workspace is force-added to git (files below .superpowers/sdd/2026-10-07-inlign/), because the user asked for a cross-device resume and the ledger is the record; the skill's default is git-ignored scratch. Cost if wrong: scratch files in history; removed with the workspace at plan end. Future task commits should include `git add -f .superpowers/sdd/2026-10-07-inlign` so briefs and ledger travel with the push.
