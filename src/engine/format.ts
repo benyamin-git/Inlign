@@ -9,7 +9,7 @@ export function lastWrittenDecimals(text: string): number {
 }
 
 export function writtenTolerance(rhsText: string, resolvedValue: number): number {
-  const half = 0.5 * 10 ** -lastWrittenDecimals(rhsText)
+  const half = 0.5 / 10 ** lastWrittenDecimals(rhsText)
   return Math.max(half, Math.abs(resolvedValue) * 1e-12)
 }
 
