@@ -45,10 +45,12 @@ relative tolerance override instead.
 
 ## Fixing a flag
 
-A conflict marker shows the expected value and, on hover or tap, an
-explanation. The fix replaces just the right-hand side with the computed value
-as an ordinary, undoable edit. Inlign never changes your text silently: a flag
-disappears because the text was corrected, not because the check was skipped.
+The underline that flags a conflict is always visible. Put the cursor on the
+flagged line — or hover it — to see the expected value and an explanation. The
+inline fix appears only on the line you are editing; it replaces just the
+right-hand side with the computed value as an ordinary, undoable edit. Inlign
+never changes your text silently: a flag disappears because the text was
+corrected, not because the check was skipped.
 
 ## Quiet by design
 

@@ -16,8 +16,9 @@ v = g * t
 
 Each complete line becomes one constraint in a single shared system. The order
 of the lines does not matter: a formula may refer to a value that appears
-further down, and `v` could be written before `t`. Results appear at the end
-of each line as you type.
+further down, and `v` could be written before `t`. The line you are editing
+shows its result at its end; click any line to see its value. Computed values
+stay on the cursor's line so the rest of the page reads like plain text.
 
 ## Catching a mistake
 

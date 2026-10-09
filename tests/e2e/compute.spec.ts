@@ -13,3 +13,18 @@ test('typing a formula shows its result within two seconds', async ({ page }) =>
     timeout: 2000,
   })
 })
+
+test('shows a result only on the line with the caret', async ({ page }) => {
+  await page.goto('/')
+  const editor = page.getByRole('textbox', { name: 'Notebook editor' })
+  const tResult = page.locator('.cm-ann-result', { hasText: /^= 2\.01927510938$/ })
+  await expect(editor).toContainText('t = sqrt(2 * h / g)')
+
+  await expect(tResult).toHaveCount(0)
+
+  await editor.getByText('t = sqrt(2 * h / g)').click()
+  await expect(tResult).toBeVisible()
+
+  await editor.getByText(/^h = 20$/).click()
+  await expect(tResult).toHaveCount(0)
+})

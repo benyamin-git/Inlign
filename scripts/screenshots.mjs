@@ -86,7 +86,8 @@ async function settle(page) {
   await page.evaluate(async () => {
     await document.fonts.ready
   })
-  await page.locator('.cm-ann-result', { hasText: '= 20' }).waitFor()
+  await page.locator('.cm-line', { hasText: 't = sqrt(2 * h / g)' }).click()
+  await page.locator('.cm-ann-result', { hasText: '= 2.01927510938' }).waitFor()
   await waitForAutosave(page)
 }
 
@@ -120,6 +121,7 @@ async function main() {
 
     await capture(page, 'editor')
 
+    await page.locator('.cm-ann-conflict').click()
     await page
       .locator('button.cm-ann-fix')
       .evaluate((button) => button.scrollIntoView({ block: 'center' }))
@@ -148,9 +150,9 @@ async function main() {
     await switcher.getByRole('button', { name: 'Save name' }).click()
     await switcher.getByText('Practice').waitFor()
     await switcher.getByRole('button', { name: /^Welcome/ }).click()
+    await settle(page)
     await page.getByRole('button', { name: 'Notebooks' }).click()
     await switcher.waitFor()
-    await settle(page)
     await capture(page, 'switcher')
   } finally {
     await browser?.close()

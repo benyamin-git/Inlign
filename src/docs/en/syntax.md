@@ -9,7 +9,10 @@ A line that starts with `#` is always prose, whatever follows it.
 
 ## Statements
 
-There are four statement shapes, decided by what stands left of the `=`.
+There are four statement shapes, decided by what stands left of the `=`. The
+value a statement computes appears at the end of the line while your cursor is
+on it, and the rest of the notebook stays out of the way until you click into
+a line.
 
 **Claim** — a single name equals an expression with no free names:
 

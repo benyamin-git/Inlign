@@ -65,7 +65,7 @@ function widgets(
 
 describe('annotationDecorations', () => {
   it('maps a result to a muted inline widget at the line end', () => {
-    const set = annotationDecorations([result], false)
+    const set = annotationDecorations([result], false, 0)
     const [widget] = widgets(entries(set))
     expect(widget).toEqual({ from: 5, to: 5, text: '= 7', block: false })
     expect(entries(set).every((entry) => entry.decoration.spec.class !== 'cm-ann-conflict')).toBe(
@@ -74,14 +74,25 @@ describe('annotationDecorations', () => {
   })
 
   it('places result widgets as indented block widgets when narrow', () => {
-    const set = annotationDecorations([result], true)
+    const set = annotationDecorations([result], true, 0)
     const [widget] = widgets(entries(set))
     expect(widget?.block).toBe(true)
     expect(widget?.text).toBe('= 7')
   })
 
-  it('underlines a conflict and offers the expected value inline', () => {
-    const set = annotationDecorations([conflict], false)
+  it('hides a result when the caret is on another line', () => {
+    const set = annotationDecorations([result], false, 2)
+    expect(widgets(entries(set))).toEqual([])
+  })
+
+  it('renders only the result on the caret line among several results', () => {
+    const other: Annotation = { line: 1, from: 6, to: 11, kind: 'result', text: '9' }
+    const set = annotationDecorations([result, other], false, 1)
+    expect(widgets(entries(set)).map((widget) => widget.text)).toEqual(['= 9'])
+  })
+
+  it('underlines a conflict and offers the expected value while the caret is on its line', () => {
+    const set = annotationDecorations([conflict], false, 1)
     const mark = entries(set).find((entry) => entry.decoration.spec.class === 'cm-ann-conflict')
     expect(mark?.from).toBe(6)
     expect(mark?.to).toBe(13)
@@ -89,14 +100,29 @@ describe('annotationDecorations', () => {
     expect(widget?.text).toBe('≠ 2.019')
   })
 
+  it('hides a conflict fix when the caret is elsewhere but keeps the underline', () => {
+    const set = annotationDecorations([conflict], false, 0)
+    const mark = entries(set).find((entry) => entry.decoration.spec.class === 'cm-ann-conflict')
+    expect(mark?.from).toBe(6)
+    expect(mark?.to).toBe(13)
+    expect(widgets(entries(set))).toEqual([])
+  })
+
   it('renders fixable duplicates as error notes and bare errors as a warning mark', () => {
-    const set = annotationDecorations([duplicate, error], false)
+    const set = annotationDecorations([duplicate, error], false, 2)
     const found = widgets(entries(set))
     expect(found.map((widget) => widget.text)).toEqual(['↩ b + 1', '⚠'])
   })
 
+  it('downgrades an off-caret duplicate fix to a quiet warning', () => {
+    const off = annotationDecorations([duplicate], false, 0)
+    expect(widgets(entries(off)).map((widget) => widget.text)).toEqual(['⚠'])
+    const on = annotationDecorations([duplicate], false, 2)
+    expect(widgets(entries(on)).map((widget) => widget.text)).toEqual(['↩ b + 1'])
+  })
+
   it('shows unresolved symbolic text or a quiet ellipsis', () => {
-    const set = annotationDecorations([unresolved, emptyUnresolved], false)
+    const set = annotationDecorations([unresolved, emptyUnresolved], false, 4)
     const found = widgets(entries(set))
     expect(found.map((widget) => widget.text)).toEqual(['= 1 + y', '…'])
   })

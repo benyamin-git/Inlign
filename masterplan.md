@@ -66,8 +66,9 @@ candidate for later; the architecture must make them additions, not rewrites.
   are flagged inline with the expected value and a one-click fix.
 - **Quiet when unsure.** Parse errors, unresolved symbols and non-converging
   solves produce a muted marker, never a wrong number.
-- **Drafting stays fluid.** Results appear inline at the line end; on narrow
-  screens they drop to an indented line of their own.
+- **Drafting stays fluid.** The line you are editing shows its result inline at
+  the line end, keeping the rest of the notebook plain; on narrow screens the
+  result drops to an indented line of its own.
 - **Answers are complete.** Equations with unknowns solve regardless of line
   order; multiple real solutions are shown up to four, plus a count.
 - **Precision is respected.** Claim checking honours the written precision of

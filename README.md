@@ -2,7 +2,8 @@
 
 Inlign is a local-first live mathematical notepad: a plain-text document where
 you draft a solution — prose, values, formulas, equations — and a general-purpose
-math engine computes every value it can, in place, as you type. It also
+math engine computes every value it can as you type, showing it at the end of
+the line you are editing. It also
 cross-checks the values you wrote against what the rest of the document implies,
 quietly flags the ones that do not add up, and offers a one-click fix.
 
@@ -44,10 +45,10 @@ v = 20.6
 
 ## Screenshots
 
-The editor with live results and a conflicting claim, plus the settings, help
-and notebook sheets.
+The editor with a computed result on the focused line and a conflicting claim,
+plus the settings, help and notebook sheets.
 
-![The editor: a result for every resolvable line, and a flagged conflict](screenshots/desktop/editor.png)
+![The editor: the focused line showing its result, and a flagged conflict](screenshots/desktop/editor.png)
 
 | Conflict detail                                                                                           | Settings                                                                                                         |
 | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |

@@ -54,15 +54,21 @@ function warningNote(text: string): HTMLSpanElement {
 class AnnotationWidget extends WidgetType {
   private readonly annotation: Annotation
   private readonly narrow: boolean
+  private readonly showFix: boolean
 
-  constructor(annotation: Annotation, narrow: boolean) {
+  constructor(annotation: Annotation, narrow: boolean, showFix: boolean) {
     super()
     this.annotation = annotation
     this.narrow = narrow
+    this.showFix = showFix
   }
 
   eq(other: AnnotationWidget): boolean {
-    return other.annotation === this.annotation && other.narrow === this.narrow
+    return (
+      other.annotation === this.annotation &&
+      other.narrow === this.narrow &&
+      other.showFix === this.showFix
+    )
   }
 
   ignoreEvent(): boolean {
@@ -79,14 +85,19 @@ class AnnotationWidget extends WidgetType {
     }
     if (annotation.kind === 'conflict') return fixButton(annotation)
     if (annotation.kind === 'error') {
-      if (annotation.fix !== undefined) return fixButton(annotation)
+      if (annotation.fix !== undefined)
+        return this.showFix ? fixButton(annotation) : warningNote('⚠')
       return warningNote('⚠')
     }
     return warningNote(annotation.text === '' ? '…' : `= ${annotation.text}`)
   }
 }
 
-export function annotationDecorations(annotations: Annotation[], narrow: boolean): DecorationSet {
+export function annotationDecorations(
+  annotations: Annotation[],
+  narrow: boolean,
+  caretLine: number,
+): DecorationSet {
   const ranges: Range<Decoration>[] = []
   for (const annotation of annotations) {
     if (annotation.kind === 'conflict' && annotation.from < annotation.to) {
@@ -94,7 +105,10 @@ export function annotationDecorations(annotations: Annotation[], narrow: boolean
         Decoration.mark({ class: 'cm-ann-conflict' }).range(annotation.from, annotation.to),
       )
     }
-    const widget = new AnnotationWidget(annotation, narrow)
+    if (annotation.kind === 'result' && annotation.line !== caretLine) continue
+    const showFix = annotation.fix !== undefined && annotation.line === caretLine
+    if (annotation.fix !== undefined && !showFix && annotation.kind === 'conflict') continue
+    const widget = new AnnotationWidget(annotation, narrow, showFix)
     ranges.push(
       Decoration.widget({
         widget,
@@ -109,7 +123,11 @@ export function annotationDecorations(annotations: Annotation[], narrow: boolean
 export const annotationsExtension: Extension = [
   annotationField,
   narrowField,
-  EditorView.decorations.compute([annotationField, narrowField], (state) =>
-    annotationDecorations(state.field(annotationField), state.field(narrowField)),
+  EditorView.decorations.compute([annotationField, narrowField, 'selection'], (state) =>
+    annotationDecorations(
+      state.field(annotationField),
+      state.field(narrowField),
+      state.doc.lineAt(state.selection.main.head).number - 1,
+    ),
   ),
 ]

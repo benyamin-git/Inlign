@@ -117,7 +117,10 @@ export function annotationTooltips(labels: EditorLabels): Extension {
       { hideOn: (transaction) => transaction.docChanged },
     ),
     EditorView.updateListener.of((update) => {
-      if (update.state.field(annotationField) !== update.startState.field(annotationField)) {
+      if (
+        update.state.field(annotationField) !== update.startState.field(annotationField) ||
+        update.selectionSet
+      ) {
         syncAnnotationLabels(update.view, labels)
       }
     }),

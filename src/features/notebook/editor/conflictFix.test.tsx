@@ -6,9 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Annotation, SolveSettings } from '@/engine/types'
 import { MockWorker } from '@/test/mockWorker'
 import { NotebookEditor } from '../NotebookEditor'
-import { annotationField, setAnnotations } from './annotations'
+import { annotationField, annotationsExtension, setAnnotations } from './annotations'
 import { applyFix, conflictFixKeymap } from './conflictFix'
-import { annotationDetail, type EditorLabels } from './tooltips'
+import { annotationDetail, annotationTooltips, type EditorLabels } from './tooltips'
 
 const settings: SolveSettings = { angleMode: 'radians', precision: 12, toleranceOverride: null }
 
@@ -62,6 +62,43 @@ describe('conflictFixKeymap', () => {
 
     view.dispatch({ selection: { anchor: 10 } })
     expect(binding.run(view)).toBe(false)
+    view.destroy()
+  })
+})
+
+describe('fix visibility follows the caret', () => {
+  it('shows a conflict fix only while the caret is on its line', () => {
+    const view = createView('t = 2.1\nx = 1', [annotationsExtension])
+    view.dispatch({ effects: setAnnotations([conflict]) })
+    expect(view.dom.querySelector('button.cm-ann-fix')).not.toBeNull()
+
+    view.dispatch({ selection: { anchor: 10 } })
+    expect(view.dom.querySelector('button.cm-ann-fix')).toBeNull()
+
+    view.dispatch({ selection: { anchor: 1 } })
+    expect(view.dom.querySelector('button.cm-ann-fix')).not.toBeNull()
+    view.destroy()
+  })
+
+  it('labels a fix that appears when the caret moves onto its line', () => {
+    const moved: Annotation = {
+      line: 1,
+      from: 6,
+      to: 13,
+      kind: 'conflict',
+      text: '2.019',
+      expected: '2.019',
+      fix: { from: 10, to: 13, insert: '2.019' },
+    }
+    const view = createView('x = 1\nt = 2.1', [annotationsExtension, annotationTooltips(labels)])
+    view.dispatch({ effects: setAnnotations([moved]) })
+    expect(view.dom.querySelector('button.cm-ann-fix')).toBeNull()
+
+    view.dispatch({ selection: { anchor: 7 } })
+    const button = view.dom.querySelector<HTMLButtonElement>('button.cm-ann-fix')
+    expect(button?.getAttribute('aria-label')).toBe(
+      'Conflicts with the computed value (expected 2.019). Replace with computed',
+    )
     view.destroy()
   })
 })

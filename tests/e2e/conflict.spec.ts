@@ -3,13 +3,18 @@ import { expect, test } from '@playwright/test'
 test('the seeded conflict offers a fix that clears and survives a reload', async ({ page }) => {
   await page.goto('/')
 
-  const fix = page.locator('button.cm-ann-fix')
-  await expect(fix).toHaveCount(1)
+  const editor = page.getByRole('textbox', { name: 'Notebook editor' })
+  const mark = editor.locator('.cm-ann-conflict')
+  await expect(mark).toBeVisible()
+
+  const fix = editor.locator('button.cm-ann-fix')
+  await expect(fix).toHaveCount(0)
+
+  await mark.click()
   await expect(fix).toHaveText('≠ 2.019')
 
   await fix.click()
 
-  const editor = page.getByRole('textbox', { name: 'Notebook editor' })
   await expect(editor).toContainText('t = 2.019')
   await expect(fix).toHaveCount(0)
 
