@@ -1,3 +1,4 @@
+import { newId } from '@/lib/id'
 import { db } from '../db'
 import { NotebookSchema, type Notebook } from '../models/notebook'
 
@@ -10,7 +11,7 @@ export async function listNotebooks(): Promise<Notebook[]> {
 export async function createNotebook(title = DEFAULT_TITLE, content = ''): Promise<Notebook> {
   const now = Date.now()
   const notebook: Notebook = {
-    id: crypto.randomUUID(),
+    id: newId(),
     title,
     content,
     createdAt: now,

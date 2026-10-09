@@ -149,6 +149,9 @@ never import `src/i18n`. Features, UI, theme and app layers may import `src/i18n
   them through `src/lib/version.ts` and `src/lib/platform.ts`; never touch
   `process.env` from app code.
 - Data changes go through `src/data/repositories/*`.
+- Generate ids with `newId()` from `src/lib/id.ts`, never `crypto.randomUUID()`
+  directly: `randomUUID` is secure-context only and is absent on the plain-http
+  LAN origin used for phone testing.
 - The editor is whole-line math only; results render as CodeMirror decorations
   and never by editing the user's text.
 - User-facing documentation lives in `src/docs/**` and must explain the _why_
