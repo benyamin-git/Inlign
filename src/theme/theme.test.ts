@@ -160,4 +160,9 @@ describe('generated accent palettes', () => {
     expect(tokensCss).toContain('--md-sys-color-outline: #6f6a74;')
     expect(tokensCss).toContain('--md-sys-color-surface-container-highest: #1f1f23;')
   })
+
+  it('uses only block comments so browsers never drop a rule', () => {
+    expect(tokensCss).not.toMatch(/^\s*\/\//m)
+    expect(accentsCss).not.toMatch(/^\s*\/\//m)
+  })
 })

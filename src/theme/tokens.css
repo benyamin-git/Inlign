@@ -39,8 +39,8 @@
   --app-color-warning: #ffdf9e;
 }
 
-// OLED keeps the fixed house neutrals: true black surfaces on the documented
-// ladder, never tinted by the accent.
+/* OLED keeps the fixed house neutrals: true black surfaces on the documented
+   ladder, never tinted by the accent. */
 [data-theme='oled'] {
   color-scheme: dark;
   --md-sys-color-background: #000000;
