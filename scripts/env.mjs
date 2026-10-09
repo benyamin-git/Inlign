@@ -40,6 +40,10 @@ const child = spawn(executable, args, {
   shell: process.platform === 'win32',
 })
 
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => child.kill(signal))
+}
+
 child.on('error', (error) => {
   console.error(error.message)
   process.exit(1)

@@ -76,6 +76,8 @@ Always run `npm run typecheck`, `npm run lint` and `npm test` before finishing w
   `scripts/wasm-fallbacks.mjs` (postinstall) unpacks the Oxide and Lightning CSS
   wasm builds and shims `node_modules/lightningcss` onto the wasm package. All of
   it is a no-op on other platforms; do not remove it without testing on Android.
+  The wrapper also forwards SIGINT/SIGTERM to the command it runs, so killing it
+  (e.g. `kill $(cat /tmp/inlign-liveserver.pid)`) stops the underlying server.
 - `npm run icons` rasterizes `public/favicon.svg` with headless chromium (the
   Playwright browser), so a fresh machine needs `npx playwright install chromium`
   before it can regenerate `public/icons/`, same as `npm run test:e2e`.
