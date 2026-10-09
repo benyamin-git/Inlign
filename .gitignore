@@ -12,3 +12,4 @@ playwright-report
 !.env.example
 release
 .superpowers
+.ai-state
