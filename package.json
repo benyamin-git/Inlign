@@ -8,8 +8,9 @@
     "node": ">=22.22.2 <23"
   },
   "scripts": {
-    "dev": "pnpm --filter @inlign/web dev",
-    "build": "pnpm --filter @inlign/web build",
+    "dev": "pnpm build:wasm && pnpm --filter @inlign/web dev",
+    "build": "pnpm build:wasm && pnpm --filter @inlign/web build",
+    "build:wasm": "node scripts/build-wasm.mjs",
     "typecheck": "pnpm --filter @inlign/web typecheck",
     "lint": "pnpm --filter @inlign/web lint",
     "format": "pnpm --filter @inlign/web format",

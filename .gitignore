@@ -7,6 +7,7 @@ dist-ssr
 dev-dist
 apps/web/dist
 packages/engine-wasm/pkg
+/target/
 
 # Test output
 coverage

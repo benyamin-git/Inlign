@@ -187,6 +187,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@inlign/engine-wasm':
+        specifier: workspace:*
+        version: link:../../packages/engine-wasm
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -233,6 +236,8 @@ importers:
       vitest:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@22.20.5)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.5))
+
+  packages/engine-wasm: {}
 
 packages:
 

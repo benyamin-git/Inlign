@@ -1,0 +1,9 @@
+{
+  "name": "@inlign/engine-wasm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "pkg/inlign_engine_wasm.js",
+  "module": "pkg/inlign_engine_wasm.js",
+  "types": "pkg/inlign_engine_wasm.d.ts"
+}
