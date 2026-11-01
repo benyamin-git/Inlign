@@ -1,14 +1,28 @@
+# Dependencies
 node_modules
+
+# Build output
 dist
 dist-ssr
 dev-dist
+apps/web/dist
+packages/engine-wasm/pkg
+
+# Test output
 coverage
 test-results
 playwright-report
-*.local
-.DS_Store
+
+# Environment
 .env
 .env.*
 !.env.example
-release
+
+# Local state
+*.local
 .ai-state
+.superpowers
+release
+
+# OS
+.DS_Store

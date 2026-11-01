@@ -1,0 +1,13 @@
+{
+  "name": "inlign",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @inlign/web dev",
+    "build": "pnpm --filter @inlign/web build"
+  }
+}
