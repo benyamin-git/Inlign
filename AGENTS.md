@@ -12,8 +12,8 @@ themes, import/export) is the next milestone.
 
 ## Requirements
 
-- Node `>=22.22.2 <23`. The upper bound and exact floor come from the toolchain;
-  jsdom 30 requires at least 22.22.2. `.nvmrc` selects 22.
+- Node `>=22.22.2 <23`. jsdom 30 sets the `>=22.22.2` floor; `<23` is the
+  project's Node 22 support cap. `.nvmrc` selects 22.
 - pnpm 12, pinned by `packageManager` in `package.json` (currently 12.10.1).
 - Rust stable with the `wasm32-unknown-unknown` target, rustfmt and clippy.
   The crates use edition 2024 and MSRV 1.85.
@@ -38,7 +38,7 @@ Run from the repository root.
 | `pnpm test:watch` | Build the WASM package, then run Vitest in watch mode. |
 | `pnpm test:e2e` | Run `pnpm build`, then Playwright against the preview server. |
 | `pnpm --filter @inlign/web preview` | Serve the built app on `0.0.0.0:7406` with a strict port. |
-| `pnpm --filter @inlign/web exec playwright install --with-deps chromium` | Install the Playwright browser used by CI and local e2e runs. |
+| `pnpm --filter @inlign/web exec playwright install chromium` | Install the Playwright browser locally, after `pnpm install`. Add `--with-deps` on Linux if system libraries are missing; that may require sudo. CI uses `--with-deps`. |
 | `cargo fmt --check --all` | Check Rust formatting across the workspace. |
 | `cargo clippy --workspace --all-targets -- -D warnings` | Lint all Rust targets, denying warnings. |
 | `cargo test --workspace` | Run the Rust tests natively. |
@@ -48,6 +48,12 @@ Run from the repository root.
 `pkg/` is never committed. `test:e2e` runs `pnpm build` first for the same
 reason. `format` and `format:check` are scoped to the web app; they do not
 format `docs/` or `.superpowers/`.
+
+Install Playwright Chromium only after `pnpm install`; before that, the filtered
+`playwright` binary does not exist and the command fails on a fresh clone. The
+local form is `pnpm --filter @inlign/web exec playwright install chromium`. On
+Linux, add `--with-deps` if system libraries are missing, but that form may
+require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
 
 ## Architecture boundaries
 
@@ -84,8 +90,8 @@ format `docs/` or `.superpowers/`.
 - Undo is the textarea's native undo only. There is no structural undo.
 - Generated files never enter git: `packages/engine-wasm/pkg/**` and
   `apps/web/dist/**` are ignored. The committed package shim at
-  `packages/engine-wasm/package.json` points at the generated output, and the
-  generated `accents.css` is committed and drift-checked.
+  `packages/engine-wasm/package.json` points at the generated output. Once
+  theme generation lands, `accents.css` is committed and drift-checked.
 - Do not edit the approved spec or plan under `docs/superpowers/` to match the
   code. If reality differs, record it here and in the README.
 - `pnpm format:check` covers the web app only. Do not run Prettier over

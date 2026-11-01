@@ -30,8 +30,9 @@ document.
 
 ## Prerequisites
 
-- Node `>=22.22.2 <23`. The exact floor is set by jsdom 30; `.nvmrc` selects 22
-  and `pnpm install` enforces the range.
+- Node `>=22.22.2 <23`. jsdom 30 sets the `>=22.22.2` floor; `<23` is the
+  project's Node 22 support cap. `.nvmrc` selects 22 and `pnpm install`
+  enforces the range.
 - pnpm 12 (`packageManager` pins 12.10.1).
 - Rust stable with the `wasm32-unknown-unknown` target, rustfmt and clippy.
   The crates use edition 2024 and MSRV 1.85.
@@ -42,13 +43,29 @@ document.
 rustup target add wasm32-unknown-unknown
 rustup component add rustfmt clippy
 cargo install wasm-pack
-pnpm --filter @inlign/web exec playwright install --with-deps chromium
 ```
 
 ## Quick start
 
+Install dependencies first:
+
 ```sh
 pnpm install
+```
+
+The end-to-end tests need Chromium. Install it after `pnpm install`:
+
+```sh
+pnpm --filter @inlign/web exec playwright install chromium
+```
+
+On Linux, add `--with-deps` if Chromium's system libraries are missing. That
+form may require sudo. CI uses `--with-deps` because its runner provides
+passwordless sudo.
+
+Then start the app:
+
+```sh
 pnpm dev
 ```
 
