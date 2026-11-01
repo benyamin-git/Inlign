@@ -15,6 +15,7 @@
   --color-on-surface: var(--on-surface);
   --color-on-surface-variant: var(--on-surface-variant);
   --color-outline: var(--outline);
+  --color-scrim: var(--scrim);
   --color-primary: var(--primary);
   --color-on-primary: var(--on-primary);
   --color-primary-container: var(--primary-container);
@@ -54,5 +55,11 @@
   #root {
     min-height: 100vh;
     min-height: 100dvh;
+  }
+
+  /* One visible focus treatment for every control, including future screens. */
+  :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 }

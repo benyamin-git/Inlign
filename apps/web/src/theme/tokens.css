@@ -46,6 +46,7 @@
   --on-surface: #1c1b1f;
   --on-surface-variant: #49454f;
   --outline: #79747e;
+  --scrim: rgb(28 27 31 / 0.4);
   --profit: #146c2e;
   --loss: #b3261e;
   --warning: #7a5900;
@@ -59,6 +60,7 @@
   --on-surface: #e6e1e5;
   --on-surface-variant: #cac4d0;
   --outline: #938f99;
+  --scrim: rgb(0 0 0 / 0.6);
   --profit: #6dd58c;
   --loss: #f2b8b5;
   --warning: #ffdf9e;
@@ -72,6 +74,7 @@
   --on-surface: #e8e6ea;
   --on-surface-variant: #cac4d0;
   --outline: #6f6a74;
+  --scrim: rgb(0 0 0 / 0.7);
   --profit: #6dd58c;
   --loss: #ffb4ab;
   --warning: #ffdf9e;

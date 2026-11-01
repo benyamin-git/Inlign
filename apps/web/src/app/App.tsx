@@ -1,35 +1,55 @@
-import { useEffect, useState } from "react";
+import { useCallback } from "react";
 
-import { EngineClient } from "../engine/client.ts";
+import { NotebookSidebar } from "../features/notebooks/NotebookSidebar.tsx";
+import { useNotebooks } from "../features/notebooks/useNotebooks.ts";
+import { useTheme } from "../theme/useTheme.ts";
+import { AppShell } from "./AppShell.tsx";
+import { EmptyState } from "./EmptyState.tsx";
 
 export default function App() {
-  const [engineVersion, setEngineVersion] = useState<string | null>(null);
+  // Reconciles Dexie with the pre-paint mirror; the picker lands with settings.
+  useTheme();
 
-  useEffect(() => {
-    const client = new EngineClient();
-    let active = true;
+  const { notebooks, activeId, select, create, rename, setPinned, remove, reorder } =
+    useNotebooks();
+  const active = notebooks.find((notebook) => notebook.id === activeId) ?? null;
 
-    client.version().then(
-      (version) => {
-        if (active) {
-          setEngineVersion(version);
-        }
-      },
-      () => {
-        // The engine is unreachable; the version stays empty.
-      },
-    );
+  const handleCreate = useCallback(() => {
+    void create();
+  }, [create]);
 
-    return () => {
-      active = false;
-      client.dispose();
-    };
-  }, []);
+  const lineLabel = active
+    ? `${String(active.lines.length)} ${active.lines.length === 1 ? "line" : "lines"}`
+    : "";
 
   return (
-    <main>
-      <h1>Inlign</h1>
-      <span data-testid="engine-version">{engineVersion ?? ""}</span>
-    </main>
+    <AppShell
+      activeTitle={active?.title ?? null}
+      sidebar={({ onNavigate, onClose }) => (
+        <NotebookSidebar
+          notebooks={notebooks}
+          activeId={activeId}
+          onSelect={select}
+          onCreate={create}
+          onRename={rename}
+          onSetPinned={setPinned}
+          onDelete={remove}
+          onReorder={reorder}
+          onNavigate={onNavigate}
+          onClose={onClose}
+        />
+      )}
+    >
+      {active ? (
+        <section className="mx-auto flex w-full max-w-[72ch] flex-col gap-1 p-6">
+          <h2 className="text-lg font-semibold text-on-surface">{active.title}</h2>
+          <p className="text-sm text-on-surface-variant">
+            {lineLabel}. Card editing is not available yet.
+          </p>
+        </section>
+      ) : (
+        <EmptyState onCreate={handleCreate} />
+      )}
+    </AppShell>
   );
 }

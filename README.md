@@ -18,8 +18,9 @@ values in place.
 - Vitest unit tests, a Playwright smoke test and cargo tests pass.
 - The production build is an installable PWA with a precached app shell, WASM
   binary and icons.
-- The page currently shows the engine version. Notebooks, cards, persistence,
-  themes and import/export are the next milestone.
+- The page now shows the real app shell: a collapsible notebook sidebar, an
+  empty state, and create, inline rename, pin and delete flows backed by
+  IndexedDB. Card and line editing is the next milestone.
 
 ## Why it exists
 
@@ -147,9 +148,8 @@ preview server to test install and offline behavior.
 ## Data and privacy
 
 There are no accounts, no telemetry and no requests to third-party services
-after the page loads. The app currently stores nothing; notebook data will live
-in IndexedDB in the browser, with `.inlign` and JSON files used for export and
-backup.
+after the page loads. Notebooks are stored in IndexedDB in the browser; `.inlign`
+and JSON files will be used for export and backup.
 
 ## CI
 
@@ -175,7 +175,8 @@ pnpm build
 ## Limitations
 
 - No math engine yet: no parsing, solving, checking, results or conflicts.
-- No notebooks, cards, drag and drop, autosave or import/export yet.
+- No card editing, drag and drop, autosave or import/export yet.
+- No settings or theme picker yet; the shell follows the stored theme.
 - No structural undo; only the textarea's native undo will exist.
 - iOS may evict IndexedDB storage, so backups matter once persistence lands.
 
