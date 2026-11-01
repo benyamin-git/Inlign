@@ -15,6 +15,7 @@ export default tseslint.config(
       "packages/engine-wasm/pkg/**",
       "docs/**",
       ".superpowers/**",
+      "apps/web/src/theme/accents.css",
       "pnpm-lock.yaml",
     ],
   },

@@ -30,6 +30,7 @@ Run from the repository root.
 | `pnpm dev` | Build the WASM package, then serve Vite on `0.0.0.0:7406` with a strict port. |
 | `pnpm build` | Build the WASM package, then the production PWA into `apps/web/dist/`. |
 | `pnpm build:wasm` | Run `wasm-pack build --target bundler` into `packages/engine-wasm/pkg/`. |
+| `pnpm generate:accents` | Regenerate the committed accent tokens in `apps/web/src/theme/accents.css`. |
 | `pnpm typecheck` | Build the WASM package, then run `tsc -b` for the web app. |
 | `pnpm lint` | Build the WASM package, then run ESLint with zero warnings. |
 | `pnpm format` | Write Prettier formatting for the web app. |
@@ -90,8 +91,9 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
 - Undo is the textarea's native undo only. There is no structural undo.
 - Generated files never enter git: `packages/engine-wasm/pkg/**` and
   `apps/web/dist/**` are ignored. The committed package shim at
-  `packages/engine-wasm/package.json` points at the generated output. Once
-  theme generation lands, `accents.css` is committed and drift-checked.
+  `packages/engine-wasm/package.json` points at the generated output.
+  `apps/web/src/theme/accents.css` is generated but committed and
+  drift-checked by rerunning `pnpm generate:accents`.
 - Do not edit the approved spec or plan under `docs/superpowers/` to match the
   code. If reality differs, record it here and in the README.
 - `pnpm format:check` covers the web app only. Do not run Prettier over

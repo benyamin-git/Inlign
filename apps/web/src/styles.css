@@ -1,0 +1,58 @@
+@import "tailwindcss";
+@import "./theme/tokens.css";
+
+/*
+ * Map the semantic custom properties onto Tailwind's utility namespaces. The
+ * source variables are named differently so `@theme inline` can forward them
+ * without a circular definition. Components use the utilities, never the hex
+ * values that tokens.css and accents.css own.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline: var(--outline);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-secondary: var(--secondary);
+  --color-tertiary: var(--tertiary);
+  --color-profit: var(--profit);
+  --color-loss: var(--loss);
+  --color-warning: var(--warning);
+
+  --radius-chip: var(--chip-radius);
+  --radius-button: var(--button-radius);
+  --radius-card: var(--card-radius);
+  --radius-dialog: var(--dialog-radius);
+
+  --font-mono: var(--font-family-mono);
+}
+
+@layer base {
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: var(--background);
+    color: var(--on-surface);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}

@@ -1,0 +1,78 @@
+/*
+ * Theme tokens: neutrals, status colours, type, spacing, density and radii.
+ * Accent roles are generated into accents.css by scripts/generate-accents.mjs.
+ */
+:root {
+  /* Type scale */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 20px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Density */
+  --control-height: 40px;
+  --touch-target: 48px;
+  --top-bar-height: 64px;
+  --subtab-bar-height: 48px;
+  --table-row-height: 36px;
+
+  /* Radii */
+  --chip-radius: 6px;
+  --button-radius: 8px;
+  --card-radius: 12px;
+  --dialog-radius: 16px;
+  --pill-radius: 9999px;
+
+  /* Typeface */
+  --font-family-mono:
+    "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+[data-theme="light"] {
+  --background: #fffbfe;
+  --surface: #ffffff;
+  --surface-container: #f3edf7;
+  --surface-container-high: #ece6f0;
+  --on-surface: #1c1b1f;
+  --on-surface-variant: #49454f;
+  --outline: #79747e;
+  --profit: #146c2e;
+  --loss: #b3261e;
+  --warning: #7a5900;
+}
+
+[data-theme="dark"] {
+  --background: #1c1b1f;
+  --surface: #1c1b1f;
+  --surface-container: #211f26;
+  --surface-container-high: #2b2930;
+  --on-surface: #e6e1e5;
+  --on-surface-variant: #cac4d0;
+  --outline: #938f99;
+  --profit: #6dd58c;
+  --loss: #f2b8b5;
+  --warning: #ffdf9e;
+}
+
+[data-theme="oled"] {
+  --background: #000000;
+  --surface: #000000;
+  --surface-container: #0a0a0b;
+  --surface-container-high: #17171a;
+  --on-surface: #e8e6ea;
+  --on-surface-variant: #cac4d0;
+  --outline: #6f6a74;
+  --profit: #6dd58c;
+  --loss: #ffb4ab;
+  --warning: #ffdf9e;
+}

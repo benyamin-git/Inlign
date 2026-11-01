@@ -1,3 +1,7 @@
+import "@fontsource-variable/jetbrains-mono";
+import "./styles.css";
+import "./theme/accents.css";
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";

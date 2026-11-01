@@ -13,6 +13,9 @@ packages/engine-wasm/pkg
 test-results
 playwright-report
 
+# Generated accent tokens are owned by scripts/generate-accents.mjs
+apps/web/src/theme/accents.css
+
 # Approved specs and plans are authored, not generated
 docs/
 .superpowers/

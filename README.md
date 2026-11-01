@@ -91,6 +91,7 @@ Run these from the repository root.
 | `pnpm dev` | Build WASM, then start the Vite dev server on `0.0.0.0:7406`. |
 | `pnpm build` | Build WASM, then the production PWA into `apps/web/dist/`. |
 | `pnpm build:wasm` | Build `packages/engine-wasm/pkg/` with `wasm-pack --target bundler`. |
+| `pnpm generate:accents` | Regenerate the committed accent tokens in `apps/web/src/theme/accents.css`. |
 | `pnpm typecheck` | Build WASM, then typecheck the web app with `tsc -b`. |
 | `pnpm lint` | Build WASM, then run ESLint with zero warnings. |
 | `pnpm format` | Format the web app with Prettier. |
@@ -107,19 +108,26 @@ Run these from the repository root.
 git-ignored. `test:e2e` runs `pnpm build` first. `format` and `format:check`
 cover the web app only, not `docs/`.
 
+`pnpm generate:accents` derives every accent role for Light, Dark and OLED
+from the house OKLCH seeds and writes `apps/web/src/theme/accents.css`. That
+file is committed and drift-checked: rerun the script and
+`git diff --exit-code -- apps/web/src/theme/accents.css` must stay clean.
+
 ## Project layout
 
 ```text
 apps/web/                   React 19 + Vite 8 PWA
   src/app/                  app shell
   src/engine/               worker client, protocol, worker
+  src/theme/                tokens.css, generated accents.css, theme hook
   src/test/                 Vitest setup
   e2e/                      Playwright tests
   public/                   favicon and PWA icons
 crates/engine/              pure Rust core, no wasm-bindgen
 crates/engine-wasm/         thin #[wasm_bindgen] facade
 packages/engine-wasm/       committed package.json shim; generated pkg/ ignored
-scripts/build-wasm.mjs      wasm-pack invocation used by the root scripts
+scripts/build-wasm.mjs        wasm-pack invocation used by the root scripts
+scripts/generate-accents.mjs  OKLCH accent generator for accents.css
 docs/superpowers/           approved spec and implementation plan
 .github/workflows/ci.yml    quality gate
 ```

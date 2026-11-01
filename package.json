@@ -11,6 +11,7 @@
     "dev": "pnpm build:wasm && pnpm --filter @inlign/web dev",
     "build": "pnpm build:wasm && pnpm --filter @inlign/web build",
     "build:wasm": "node scripts/build-wasm.mjs",
+    "generate:accents": "node scripts/generate-accents.mjs",
     "typecheck": "pnpm build:wasm && pnpm --filter @inlign/web typecheck",
     "lint": "pnpm build:wasm && pnpm --filter @inlign/web lint",
     "format": "pnpm --filter @inlign/web format",

@@ -9,6 +9,9 @@ export default mergeConfig(
       environment: "jsdom",
       setupFiles: ["./src/test/setup.ts"],
       include: ["src/**/*.test.{ts,tsx}"],
+      // Process CSS so `?raw` imports see the file contents instead of the
+      // empty stub Vitest uses by default.
+      css: true,
     },
   }),
 );

@@ -13,11 +13,11 @@ const ACCENTS = [
   "violet",
 ] as const satisfies readonly Accent[];
 
-function isTheme(value: unknown): value is Theme {
+export function isTheme(value: unknown): value is Theme {
   return (THEMES as readonly unknown[]).includes(value);
 }
 
-function isAccent(value: unknown): value is Accent {
+export function isAccent(value: unknown): value is Accent {
   return (ACCENTS as readonly unknown[]).includes(value);
 }
 

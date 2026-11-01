@@ -8,6 +8,43 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Inlign</title>
+    <script>
+      // Resolve the theme before the module script runs so a dark or OLED load
+      // never flashes light. Dexie stays the source of truth; useTheme
+      // reconciles this mirror once settings load.
+      (function () {
+        var themes = ["light", "dark", "oled"];
+        var accents = ["blue", "teal", "green", "orange", "rose", "violet"];
+        var theme = null;
+        var accent = "blue";
+
+        try {
+          var storedTheme = window.localStorage.getItem("inlign.theme");
+          if (themes.indexOf(storedTheme) !== -1) {
+            theme = storedTheme;
+          }
+
+          var storedAccent = window.localStorage.getItem("inlign.accent");
+          if (accents.indexOf(storedAccent) !== -1) {
+            accent = storedAccent;
+          }
+        } catch (error) {
+          // Storage can throw in private modes; fall back to the OS below.
+        }
+
+        if (theme === null) {
+          var prefersDark =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          theme = prefersDark ? "dark" : "light";
+        }
+
+        var root = document.documentElement;
+        root.dataset.theme = theme;
+        root.dataset.accent = accent;
+        root.style.colorScheme = theme === "light" ? "light" : "dark";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
