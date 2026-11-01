@@ -1,17 +1,24 @@
-import { db } from "./db.ts";
+import { db, type SettingRecord } from "./db.ts";
 import type { Accent, Settings, Theme } from "./models.ts";
 
 const DEFAULT_SETTINGS: Settings = { theme: null, accent: "blue" };
 
-const THEMES: readonly Theme[] = ["light", "dark", "oled"];
-const ACCENTS: readonly Accent[] = ["blue", "teal", "green", "orange", "rose", "violet"];
+const THEMES = ["light", "dark", "oled"] as const satisfies readonly Theme[];
+const ACCENTS = [
+  "blue",
+  "teal",
+  "green",
+  "orange",
+  "rose",
+  "violet",
+] as const satisfies readonly Accent[];
 
 function isTheme(value: unknown): value is Theme {
-  return THEMES.some((theme) => theme === value);
+  return (THEMES as readonly unknown[]).includes(value);
 }
 
 function isAccent(value: unknown): value is Accent {
-  return ACCENTS.some((accent) => accent === value);
+  return (ACCENTS as readonly unknown[]).includes(value);
 }
 
 export async function getSettings(): Promise<Settings> {
@@ -35,5 +42,7 @@ export async function setSetting<K extends keyof Settings>(
   key: K,
   value: Settings[K],
 ): Promise<void> {
-  await db.settings.put({ key, value });
+  const record: SettingRecord = { key, value };
+
+  await db.settings.put(record);
 }

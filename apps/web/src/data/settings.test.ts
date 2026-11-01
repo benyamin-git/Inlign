@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, expect, test } from "vitest";
 
 import { db } from "./db.ts";
+import type { Theme } from "./models.ts";
 import { getSettings, setSetting } from "./settings.ts";
 
 beforeEach(async () => {
@@ -29,4 +30,10 @@ test("stores a null theme to follow the OS again", async () => {
   await setSetting("accent", "teal");
 
   await expect(getSettings()).resolves.toEqual({ theme: null, accent: "teal" });
+});
+
+test("ignores an invalid stored theme", async () => {
+  await db.settings.put({ key: "theme", value: "neon" as unknown as Theme });
+
+  await expect(getSettings()).resolves.toEqual({ theme: null, accent: "blue" });
 });

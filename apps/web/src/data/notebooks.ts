@@ -31,24 +31,26 @@ function isPinned(record: NotebookRecord): boolean {
 }
 
 export async function createNotebook(title?: string): Promise<Notebook> {
-  const unpinned = await db.notebooks.where("pinned").equals(0).toArray();
-  const sortOrder =
-    unpinned.length === 0 ? 0 : Math.min(...unpinned.map((notebook) => notebook.sortOrder)) - 1;
-  const now = Date.now();
-  const line: Line = { id: crypto.randomUUID(), text: "" };
-  const notebook: Notebook = {
-    id: crypto.randomUUID(),
-    title: normalizeTitle(title),
-    lines: [line],
-    pinned: false,
-    sortOrder,
-    createdAt: now,
-    updatedAt: now,
-  };
+  return db.transaction("rw", db.notebooks, async () => {
+    const unpinned = await db.notebooks.where("pinned").equals(0).toArray();
+    const sortOrder =
+      unpinned.length === 0 ? 0 : Math.min(...unpinned.map((notebook) => notebook.sortOrder)) - 1;
+    const now = Date.now();
+    const line: Line = { id: crypto.randomUUID(), text: "" };
+    const notebook: Notebook = {
+      id: crypto.randomUUID(),
+      title: normalizeTitle(title),
+      lines: [line],
+      pinned: false,
+      sortOrder,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-  await db.notebooks.add(toRecord(notebook));
+    await db.notebooks.add(toRecord(notebook));
 
-  return notebook;
+    return notebook;
+  });
 }
 
 export async function listNotebooks(): Promise<Notebook[]> {
@@ -78,52 +80,57 @@ export async function getNotebook(id: string): Promise<Notebook | undefined> {
 }
 
 export async function updateNotebook(id: string, patch: NotebookPatch): Promise<Notebook> {
-  const record = await db.notebooks.get(id);
+  return db.transaction("rw", db.notebooks, async () => {
+    const record = await db.notebooks.get(id);
 
-  if (!record) {
-    throw new Error(`Notebook ${id} not found`);
-  }
+    if (!record) {
+      throw new Error(`Notebook ${id} not found`);
+    }
 
-  const titleChanged = patch.title !== undefined;
-  const linesChanged = patch.lines !== undefined;
+    const titleChanged = patch.title !== undefined;
+    const linesChanged = patch.lines !== undefined;
 
-  if (linesChanged && patch.lines?.length === 0) {
-    throw new Error("A notebook must have at least one line");
-  }
+    if (linesChanged && patch.lines?.length === 0) {
+      throw new Error("A notebook must have at least one line");
+    }
 
-  const next: NotebookRecord = { ...record };
+    const next: NotebookRecord = { ...record };
 
-  if (titleChanged) {
-    next.title = normalizeTitle(patch.title);
-  }
+    if (titleChanged) {
+      next.title = normalizeTitle(patch.title);
+    }
 
-  if (linesChanged && patch.lines) {
-    next.lines = patch.lines.map((line) => ({ id: line.id, text: line.text }));
-  }
+    if (linesChanged && patch.lines) {
+      next.lines = patch.lines.map((line) => ({ id: line.id, text: line.text }));
+    }
 
-  if (patch.pinned !== undefined) {
-    next.pinned = patch.pinned ? 1 : 0;
-  }
+    if (patch.pinned !== undefined) {
+      next.pinned = patch.pinned ? 1 : 0;
+    }
 
-  if (patch.sortOrder !== undefined) {
-    next.sortOrder = patch.sortOrder;
-  }
+    if (patch.sortOrder !== undefined) {
+      next.sortOrder = patch.sortOrder;
+    }
 
-  if (patch.updatedAt !== undefined) {
-    next.updatedAt = patch.updatedAt;
-  } else if (titleChanged || linesChanged) {
-    next.updatedAt = Date.now();
-  }
+    if (patch.updatedAt !== undefined) {
+      next.updatedAt = patch.updatedAt;
+    } else if (titleChanged || linesChanged) {
+      next.updatedAt = Date.now();
+    }
 
-  await db.notebooks.put(next);
+    await db.notebooks.put(next);
 
-  return fromRecord(next);
+    return fromRecord(next);
+  });
 }
 
 export async function deleteNotebook(id: string): Promise<void> {
   await db.notebooks.delete(id);
 }
 
+// Pinning or unpinning does not place a notebook in a section on its own.
+// After changing `pinned`, the sidebar must call `reorderNotebooks` for the
+// notebook's new section.
 export async function reorderNotebooks(
   section: "pinned" | "unpinned",
   orderedIds: string[],
@@ -135,6 +142,15 @@ export async function reorderNotebooks(
   const expectedPinned = section === "pinned";
 
   await db.transaction("rw", db.notebooks, async () => {
+    const sectionCount = await db.notebooks
+      .where("pinned")
+      .equals(expectedPinned ? 1 : 0)
+      .count();
+
+    if (orderedIds.length !== sectionCount) {
+      throw new Error(`Reorder list must include every notebook in the ${section} section`);
+    }
+
     const records = await db.notebooks.bulkGet(orderedIds);
 
     records.forEach((record, index) => {
@@ -150,9 +166,7 @@ export async function reorderNotebooks(
     });
 
     for (const [sortOrder, id] of orderedIds.entries()) {
-      if (id !== undefined) {
-        await db.notebooks.update(id, { sortOrder });
-      }
+      await db.notebooks.update(id, { sortOrder });
     }
   });
 }
