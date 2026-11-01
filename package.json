@@ -12,7 +12,7 @@
     "build": "pnpm build:wasm && pnpm --filter @inlign/web build",
     "build:wasm": "node scripts/build-wasm.mjs",
     "typecheck": "pnpm build:wasm && pnpm --filter @inlign/web typecheck",
-    "lint": "pnpm --filter @inlign/web lint",
+    "lint": "pnpm build:wasm && pnpm --filter @inlign/web lint",
     "format": "pnpm --filter @inlign/web format",
     "format:check": "pnpm --filter @inlign/web format:check",
     "test": "pnpm build:wasm && pnpm --filter @inlign/web test",

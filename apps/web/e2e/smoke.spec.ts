@@ -4,4 +4,5 @@ test("shows the engine version reported by the worker", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByTestId("engine-version")).toHaveText(/^\d+\.\d+\.\d+$/);
+  await expect(page.getByTestId("engine-version")).toHaveText("0.1.0");
 });
