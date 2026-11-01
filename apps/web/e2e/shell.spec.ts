@@ -63,8 +63,29 @@ test("creates, renames and deletes notebooks", async ({ page }) => {
   await expect(activeTitle).toHaveText("Alpha");
   await expect(sidebar.getByRole("button", { name: "Untitled", exact: true })).toHaveCount(0);
 
-  // Notebooks and the active selection survive a reload.
+  // The rename persists across a reload. Alpha is the only notebook left, so
+  // the first notebook selected on load is Alpha.
   await page.reload();
   await expect(activeTitle).toHaveText("Alpha");
   await expect(sidebar.getByRole("button", { name: "Alpha", exact: true })).toBeVisible();
+});
+
+test.describe("narrow viewport", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("creates from the drawer and closes it", async ({ page }) => {
+    await page.goto("/");
+
+    const drawer = page.getByRole("dialog", { name: "Notebooks" });
+
+    await expect(drawer).toBeHidden();
+
+    await page.getByRole("button", { name: "Show sidebar" }).click();
+    await expect(drawer).toBeVisible();
+
+    await drawer.getByRole("button", { name: "New notebook" }).click();
+
+    await expect(drawer).toBeHidden();
+    await expect(page.getByTestId("active-title")).toHaveText("Untitled");
+  });
 });

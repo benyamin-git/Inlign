@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -107,7 +107,7 @@ test("Escape cancels a rename and keeps the original title", async () => {
   await expect(getNotebook(notebook.id)).resolves.toMatchObject({ title: "Alpha" });
 });
 
-test("blur commits a rename", async () => {
+test("blur commits a rename and returns focus to the title", async () => {
   const user = userEvent.setup();
   const notebook = await createNotebook("Alpha");
 
@@ -116,11 +116,20 @@ test("blur commits a rename", async () => {
 
   await user.click(screen.getByRole("button", { name: "Actions for Alpha" }));
   await user.click(screen.getByRole("menuitem", { name: "Rename" }));
-  await user.clear(screen.getByRole("textbox", { name: "Notebook title" }));
-  await user.type(screen.getByRole("textbox", { name: "Notebook title" }), "Delta");
-  await user.tab();
+
+  const input = screen.getByRole("textbox", { name: "Notebook title" });
+
+  await user.clear(input);
+  await user.type(input, "Delta");
+  // A null relatedTarget means focus went nowhere; the item must keep it.
+  act(() => {
+    input.blur();
+  });
 
   expect(await screen.findByRole("button", { name: "Delta" })).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: "Delta" })).toHaveFocus();
+  });
   await waitFor(async () => {
     await expect(getNotebook(notebook.id)).resolves.toMatchObject({ title: "Delta" });
   });
@@ -137,6 +146,9 @@ test("pins and unpins a notebook from the item menu", async () => {
   await user.click(screen.getByRole("menuitem", { name: "Pin notebook" }));
 
   expect(await screen.findByRole("heading", { name: "Pinned" })).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: "Alpha" })).toHaveFocus();
+  });
   await waitFor(async () => {
     await expect(getNotebook(notebook.id)).resolves.toMatchObject({ pinned: true });
   });
@@ -146,6 +158,9 @@ test("pins and unpins a notebook from the item menu", async () => {
 
   await waitFor(() => {
     expect(screen.queryByRole("heading", { name: "Pinned" })).not.toBeInTheDocument();
+  });
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: "Alpha" })).toHaveFocus();
   });
   await expect(getNotebook(notebook.id)).resolves.toMatchObject({ pinned: false });
 });
@@ -183,7 +198,35 @@ test("delete asks for confirmation, then removes the notebook", async () => {
   await waitFor(() => {
     expect(screen.queryByRole("button", { name: "Alpha" })).not.toBeInTheDocument();
   });
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: "New notebook" })).toHaveFocus();
+  });
   await expect(listNotebooks()).resolves.toEqual([]);
+});
+
+test("focuses the new active title after deleting the active notebook", async () => {
+  const user = userEvent.setup();
+
+  await createNotebook("Alpha");
+  await createNotebook("Beta");
+
+  render(<Harness />);
+  await screen.findByRole("button", { name: "Beta" });
+
+  await user.click(screen.getByRole("button", { name: "Actions for Beta" }));
+  await user.click(screen.getByRole("menuitem", { name: "Delete" }));
+  await user.click(
+    within(screen.getByRole("dialog", { name: "Delete notebook?" })).getByRole("button", {
+      name: "Delete",
+    }),
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByRole("button", { name: "Beta" })).not.toBeInTheDocument();
+  });
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: "Alpha" })).toHaveFocus();
+  });
 });
 
 test("the item menu supports the keyboard: arrows open and focus, Escape returns focus", async () => {

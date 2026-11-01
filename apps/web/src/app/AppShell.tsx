@@ -21,20 +21,32 @@ const NARROW_QUERY = "(max-width: 767px)";
 
 export function AppShell({ activeTitle, sidebar, children }: AppShellProps) {
   const isNarrow = useMediaQuery(NARROW_QUERY);
-  const [sidebarOpen, setSidebarOpen] = useState(!isNarrow);
+  // Desktop collapse and the narrow drawer are separate: resizing must not
+  // open a modal drawer unrequested or collapse the desktop sidebar.
+  const [desktopOpen, setDesktopOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const sidebarOpen = isNarrow ? drawerOpen : desktopOpen;
 
   const toggleSidebar = useCallback(() => {
-    setSidebarOpen((open) => !open);
-  }, []);
+    if (isNarrow) {
+      setDrawerOpen((open) => !open);
+    } else {
+      setDesktopOpen((open) => !open);
+    }
+  }, [isNarrow]);
 
-  const closeSidebar = useCallback(() => {
-    setSidebarOpen(false);
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
   }, []);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-on-surface">
-      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-outline bg-surface px-3">
-        <IconButton label={sidebarOpen ? "Hide sidebar" : "Show sidebar"} onClick={toggleSidebar}>
+      <header className="flex h-[var(--top-bar-height)] shrink-0 items-center gap-3 border-b border-outline bg-surface px-3">
+        <IconButton
+          label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+          aria-expanded={sidebarOpen}
+          onClick={toggleSidebar}
+        >
           <MenuIcon />
         </IconButton>
         <h1 className="shrink-0 text-lg font-semibold tracking-tight text-on-surface">Inlign</h1>
@@ -50,13 +62,13 @@ export function AppShell({ activeTitle, sidebar, children }: AppShellProps) {
       </header>
       <div className="flex min-h-0 flex-1">
         {isNarrow ? (
-          <Sheet open={sidebarOpen} label="Notebooks" onClose={closeSidebar}>
-            {sidebar({ onNavigate: closeSidebar, onClose: closeSidebar })}
+          <Sheet open={drawerOpen} label="Notebooks" onClose={closeDrawer}>
+            {sidebar({ onNavigate: closeDrawer, onClose: closeDrawer })}
           </Sheet>
-        ) : sidebarOpen ? (
+        ) : desktopOpen ? (
           <aside
             aria-label="Notebooks"
-            className="w-[280px] shrink-0 border-e border-outline bg-surface"
+            className="w-[var(--sidebar-width)] shrink-0 border-e border-outline bg-surface"
           >
             {sidebar({ onNavigate: undefined, onClose: undefined })}
           </aside>

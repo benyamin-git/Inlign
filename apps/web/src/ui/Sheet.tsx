@@ -30,7 +30,7 @@ export function Sheet({ open, label, onClose, children }: SheetProps) {
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className="absolute inset-y-0 start-0 flex w-[280px] max-w-[85vw] flex-col border-e border-outline bg-surface"
+        className="absolute inset-y-0 start-0 flex w-[var(--sidebar-width)] max-w-[85vw] flex-col border-e border-outline bg-surface"
       >
         {children}
       </div>

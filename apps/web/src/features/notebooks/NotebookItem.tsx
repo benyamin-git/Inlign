@@ -146,7 +146,14 @@ export function NotebookItem({
                   cancelRename();
                 }
               }}
-              onBlur={() => {
+              onBlur={(event) => {
+                // A null relatedTarget means focus had nowhere to go (for
+                // example the input was blurred programmatically); keep it in
+                // the sidebar. A real click elsewhere keeps its own focus.
+                if (event.relatedTarget === null) {
+                  restoreFocusRef.current = true;
+                }
+
                 void commitRename();
               }}
             />
@@ -158,6 +165,7 @@ export function NotebookItem({
             aria-label={notebook.title}
             aria-current={active ? "page" : undefined}
             aria-describedby={notebook.pinned ? pinnedDescriptionId : undefined}
+            data-notebook-title-id={notebook.id}
             onClick={onSelect}
             className={cx(
               "flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-chip px-3 text-start text-sm md:min-h-10",

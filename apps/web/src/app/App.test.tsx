@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, test } from "vitest";
 
@@ -22,8 +22,8 @@ test("first run shows the empty state and creates nothing by itself", async () =
   expect(await screen.findByRole("heading", { name: "No notebooks yet" })).toBeInTheDocument();
   expect(screen.getByTestId("active-title")).toHaveTextContent("");
 
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 20));
+  await waitFor(() => {
+    expect(screen.getByText("No notebooks yet.")).toBeInTheDocument();
   });
 
   await expect(listNotebooks()).resolves.toEqual([]);
@@ -40,6 +40,9 @@ test("creating from the empty state selects the new notebook", async () => {
 
   await waitFor(() => {
     expect(screen.getByTestId("active-title")).toHaveTextContent("Untitled");
+  });
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Untitled" })).toHaveFocus();
   });
   expect(screen.queryByRole("heading", { name: "No notebooks yet" })).not.toBeInTheDocument();
   await expect(listNotebooks()).resolves.toHaveLength(1);

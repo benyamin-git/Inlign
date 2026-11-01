@@ -15,7 +15,7 @@ values in place.
 - The Vite app starts a module Web Worker, which imports the generated
   `@inlign/engine-wasm` package and returns `0.1.0` from the Rust core.
 - `wasm-pack` builds `inlign-engine-wasm` from the pure `inlign-engine` crate.
-- Vitest unit tests, a Playwright smoke test and cargo tests pass.
+- Vitest unit tests, Playwright smoke and shell tests, and cargo tests pass.
 - The production build is an installable PWA with a precached app shell, WASM
   binary and icons.
 - The page now shows the real app shell: a collapsible notebook sidebar, an
@@ -178,6 +178,6 @@ pnpm build
 - No card editing, drag and drop, autosave or import/export yet.
 - No settings or theme picker yet; the shell follows the stored theme.
 - No structural undo; only the textarea's native undo will exist.
-- iOS may evict IndexedDB storage, so backups matter once persistence lands.
+- iOS may evict IndexedDB storage, so backups will matter once export lands.
 
 MIT licensed; see `LICENSE`.

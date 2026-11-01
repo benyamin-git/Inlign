@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useRef } from "react";
+
 import type { Notebook } from "../../data/models.ts";
 import type { NotebookSection } from "./useNotebooks.ts";
 import { IconButton } from "../../ui/IconButton.tsx";
@@ -18,6 +20,8 @@ export type NotebookSidebarProps = {
   onClose?: (() => void) | undefined;
 };
 
+type PendingFocus = { kind: "pin"; id: string } | { kind: "delete" };
+
 export function NotebookSidebar({
   notebooks,
   activeId,
@@ -31,6 +35,64 @@ export function NotebookSidebar({
 }: NotebookSidebarProps) {
   const pinned = notebooks.filter((notebook) => notebook.pinned);
   const unpinned = notebooks.filter((notebook) => !notebook.pinned);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const newNotebookRef = useRef<HTMLButtonElement>(null);
+  const pendingFocusRef = useRef<PendingFocus | null>(null);
+
+  const focusTitle = useCallback((id: string | null): boolean => {
+    if (!id) {
+      return false;
+    }
+
+    const target = Array.from(
+      rootRef.current?.querySelectorAll<HTMLElement>("[data-notebook-title-id]") ?? [],
+    ).find((element) => element.dataset.notebookTitleId === id);
+
+    target?.focus();
+
+    return target !== undefined;
+  }, []);
+
+  // Mutations can move or remove the focused item, so focus is restored from
+  // the sidebar's own subtree once the new list has committed.
+  useEffect(() => {
+    const pending = pendingFocusRef.current;
+
+    if (!pending) {
+      return;
+    }
+
+    pendingFocusRef.current = null;
+
+    if (pending.kind === "pin") {
+      focusTitle(pending.id);
+      return;
+    }
+
+    if (!focusTitle(activeId)) {
+      newNotebookRef.current?.focus();
+    }
+  }, [notebooks, activeId, focusTitle]);
+
+  async function handleSetPinned(id: string, pinnedState: boolean): Promise<void> {
+    pendingFocusRef.current = { kind: "pin", id };
+
+    try {
+      await onSetPinned(id, pinnedState);
+    } catch {
+      pendingFocusRef.current = null;
+    }
+  }
+
+  async function handleDelete(id: string): Promise<void> {
+    pendingFocusRef.current = { kind: "delete" };
+
+    try {
+      await onDelete(id);
+    } catch {
+      pendingFocusRef.current = null;
+    }
+  }
 
   function handleCreate(): void {
     void Promise.resolve(onCreate()).then(() => {
@@ -65,8 +127,8 @@ export function NotebookSidebar({
                 handleSelect(notebook.id);
               }}
               onRename={(nextTitle) => onRename(notebook.id, nextTitle)}
-              onSetPinned={(nextPinned) => onSetPinned(notebook.id, nextPinned)}
-              onDelete={() => onDelete(notebook.id)}
+              onSetPinned={(nextPinned) => handleSetPinned(notebook.id, nextPinned)}
+              onDelete={() => handleDelete(notebook.id)}
             />
           ))}
         </ul>
@@ -75,11 +137,11 @@ export function NotebookSidebar({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div ref={rootRef} className="flex h-full min-h-0 flex-col">
       <div className="flex min-h-12 items-center justify-between gap-2 px-3">
         <h2 className="text-sm font-semibold text-on-surface">Notebooks</h2>
         <div className="flex items-center gap-1">
-          <IconButton label="New notebook" onClick={handleCreate}>
+          <IconButton ref={newNotebookRef} label="New notebook" onClick={handleCreate}>
             <PlusIcon />
           </IconButton>
           {onClose ? (

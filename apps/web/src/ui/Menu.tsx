@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
 
@@ -22,15 +22,66 @@ export type MenuProps = {
   triggerClassName?: string | undefined;
 };
 
-type MenuPosition = { top: number; inlineStart: number; minWidth: number };
+type MenuPosition = { top: number; left: number; maxHeight: number };
+
+const MENU_GAP = 4;
+const MENU_MARGIN = 8;
+const MENU_MIN_WIDTH = 192;
+
+/**
+ * Anchor the menu to the trigger: below by default, above when the content
+ * would overflow the viewport bottom, clamped on both axes, and capped to the
+ * space actually available so a tall menu scrolls instead of leaving the
+ * viewport. Physical `left` matches the `getBoundingClientRect` math; the app
+ * is LTR.
+ */
+function measureMenuPosition(trigger: HTMLElement, menu: HTMLElement): MenuPosition {
+  const triggerRect = trigger.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const contentHeight = Math.max(menu.scrollHeight, menuRect.height);
+  const width = Math.max(menuRect.width, MENU_MIN_WIDTH);
+  const spaceBelow = Math.max(viewportHeight - triggerRect.bottom - MENU_GAP - MENU_MARGIN, 0);
+  const spaceAbove = Math.max(triggerRect.top - MENU_GAP - MENU_MARGIN, 0);
+  const desiredHeight = contentHeight > 0 ? contentHeight : Number.POSITIVE_INFINITY;
+  const openAbove = desiredHeight > spaceBelow && spaceAbove > spaceBelow;
+  const available = openAbove ? spaceAbove : spaceBelow;
+  const height = Math.min(desiredHeight, available);
+  const top = openAbove
+    ? Math.max(MENU_MARGIN, triggerRect.top - MENU_GAP - height)
+    : triggerRect.bottom + MENU_GAP;
+  const maxLeft = Math.max(MENU_MARGIN, viewportWidth - width - MENU_MARGIN);
+  const left = Math.min(Math.max(triggerRect.left, MENU_MARGIN), maxLeft);
+
+  return {
+    top: Math.round(top),
+    left: Math.round(left),
+    maxHeight: Math.round(height),
+  };
+}
+
+function initialPosition(trigger: HTMLElement): MenuPosition {
+  const rect = trigger.getBoundingClientRect();
+  const width = Math.max(rect.width, MENU_MIN_WIDTH);
+  const spaceBelow = Math.max(window.innerHeight - rect.bottom - MENU_GAP - MENU_MARGIN, 0);
+  const maxLeft = Math.max(MENU_MARGIN, window.innerWidth - width - MENU_MARGIN);
+  const left = Math.min(Math.max(rect.left, MENU_MARGIN), maxLeft);
+
+  return {
+    top: Math.round(rect.bottom + MENU_GAP),
+    left: Math.round(left),
+    maxHeight: Math.round(spaceBelow),
+  };
+}
 
 export function Menu({ label, items, children, triggerClassName }: MenuProps) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [position, setPosition] = useState<MenuPosition>({
     top: 0,
-    inlineStart: 0,
-    minWidth: 192,
+    left: 0,
+    maxHeight: 0,
   });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -40,15 +91,7 @@ export function Menu({ label, items, children, triggerClassName }: MenuProps) {
     const trigger = triggerRef.current;
 
     if (trigger) {
-      const rect = trigger.getBoundingClientRect();
-      const width = Math.max(rect.width, 192);
-      const maxInlineStart = Math.max(8, window.innerWidth - width - 8);
-
-      setPosition({
-        top: Math.round(rect.bottom + 4),
-        inlineStart: Math.round(Math.min(Math.max(rect.left, 8), maxInlineStart)),
-        minWidth: width,
-      });
+      setPosition(initialPosition(trigger));
     }
 
     setActiveIndex(index);
@@ -62,6 +105,21 @@ export function Menu({ label, items, children, triggerClassName }: MenuProps) {
       triggerRef.current?.focus();
     }
   }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const trigger = triggerRef.current;
+    const menu = menuRef.current;
+
+    if (!trigger || !menu) {
+      return;
+    }
+
+    setPosition(measureMenuPosition(trigger, menu));
+  }, [open, items.length]);
 
   useEffect(() => {
     if (!open) {
@@ -95,6 +153,34 @@ export function Menu({ label, items, children, triggerClassName }: MenuProps) {
 
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [open]);
+
+  // A fixed menu cannot follow a scroll or resize; close rather than float in
+  // the wrong place. Scrolling inside a tall menu is not a viewport change.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleViewportChange(event: Event): void {
+      if (
+        event.type === "scroll" &&
+        event.target instanceof Node &&
+        menuRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+
+      setOpen(false);
+    }
+
+    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", handleViewportChange);
+
+    return () => {
+      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", handleViewportChange);
     };
   }, [open]);
 
@@ -212,10 +298,11 @@ export function Menu({ label, items, children, triggerClassName }: MenuProps) {
               tabIndex={-1}
               style={{
                 top: position.top,
-                insetInlineStart: position.inlineStart,
-                minWidth: position.minWidth,
+                left: position.left,
+                minWidth: MENU_MIN_WIDTH,
+                maxHeight: position.maxHeight,
               }}
-              className="fixed z-[60] flex flex-col gap-0.5 rounded-card border border-outline bg-surface-container-high p-1"
+              className="fixed z-[60] flex flex-col gap-0.5 overflow-y-auto rounded-card border border-outline bg-surface-container-high p-1"
               onKeyDown={handleMenuKeyDown}
             >
               {items.map((item, index) => (
