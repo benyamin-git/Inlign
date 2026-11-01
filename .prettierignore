@@ -9,6 +9,10 @@ dist
 coverage
 packages/engine-wasm/pkg
 
+# Test output
+test-results
+playwright-report
+
 # Approved specs and plans are authored, not generated
 docs/
 .superpowers/

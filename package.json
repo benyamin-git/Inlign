@@ -11,12 +11,13 @@
     "dev": "pnpm build:wasm && pnpm --filter @inlign/web dev",
     "build": "pnpm build:wasm && pnpm --filter @inlign/web build",
     "build:wasm": "node scripts/build-wasm.mjs",
-    "typecheck": "pnpm --filter @inlign/web typecheck",
+    "typecheck": "pnpm build:wasm && pnpm --filter @inlign/web typecheck",
     "lint": "pnpm --filter @inlign/web lint",
     "format": "pnpm --filter @inlign/web format",
     "format:check": "pnpm --filter @inlign/web format:check",
-    "test": "pnpm --filter @inlign/web test",
-    "test:watch": "pnpm --filter @inlign/web test:watch"
+    "test": "pnpm build:wasm && pnpm --filter @inlign/web test",
+    "test:watch": "pnpm build:wasm && pnpm --filter @inlign/web test:watch",
+    "test:e2e": "pnpm build && pnpm --filter @inlign/web test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
