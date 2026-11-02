@@ -1,10 +1,10 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
 
 import { cx } from "./cx.ts";
 
 export type ButtonVariant = "filled" | "tonal" | "text" | "destructive";
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+export type ButtonProps = ComponentPropsWithRef<"button"> & {
   variant?: ButtonVariant;
   children: ReactNode;
 };

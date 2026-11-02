@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Line, Notebook } from "../data/models.ts";
 import { NotebookEditor } from "../features/editor/NotebookEditor.tsx";
@@ -6,6 +6,7 @@ import { NotebookSidebar } from "../features/notebooks/NotebookSidebar.tsx";
 import { useNotebooks } from "../features/notebooks/useNotebooks.ts";
 import { SettingsSheet } from "../features/settings/SettingsSheet.tsx";
 import { useSettings } from "../features/settings/useSettings.ts";
+import { ImportDialog } from "../features/transfer/ImportDialog.tsx";
 import { useTransfer } from "../features/transfer/useTransfer.ts";
 import { AppShell } from "./AppShell.tsx";
 import { EmptyState } from "./EmptyState.tsx";
@@ -15,14 +16,45 @@ export default function App() {
   const settings = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const { notebooks, activeId, select, create, rename, setPinned, remove, reorder } =
-    useNotebooks();
+  const {
+    notebooks,
+    activeId,
+    revision,
+    select,
+    create,
+    rename,
+    setPinned,
+    remove,
+    reorder,
+    replaceAll,
+  } = useNotebooks();
   const active = notebooks.find((notebook) => notebook.id === activeId) ?? null;
-  const transfer = useTransfer(create);
-  const { exportNotebook: downloadNotebook } = transfer;
   // The sidebar list is not refreshed on text edits, so keep the editor's
-  // latest lines here for exports without re-rendering the card list.
+  // latest lines here for exports and restores without re-rendering the cards.
   const editorLinesRef = useRef(new Map<string, Line[]>());
+  const getNotebooks = useCallback(() => notebooks, [notebooks]);
+  const getLines = useCallback((id: string) => editorLinesRef.current.get(id), []);
+  const getSettings = useCallback(
+    () => ({ theme: settings.theme, accent: settings.accent }),
+    [settings.theme, settings.accent],
+  );
+
+  // A restore replaces stored lines, so cached editor snapshots are stale until
+  // the open editor reloads from the repository.
+  useEffect(() => {
+    editorLinesRef.current.clear();
+  }, [revision]);
+
+  const transfer = useTransfer({
+    create,
+    replaceAll,
+    getNotebooks,
+    getSettings,
+    getLines,
+    setTheme: settings.setTheme,
+    setAccent: settings.setAccent,
+  });
+  const { exportNotebook: downloadNotebook } = transfer;
 
   const exportNotebook = useCallback(
     (notebook: Notebook) => {
@@ -75,6 +107,7 @@ export default function App() {
           <NotebookEditor
             key={active.id}
             notebook={active}
+            revision={revision}
             onLinesChange={(lines) => {
               editorLinesRef.current.set(active.id, lines);
             }}
@@ -92,6 +125,16 @@ export default function App() {
         onExport={exportNotebook}
         transfer={transfer}
         onClose={closeSettings}
+      />
+      <ImportDialog
+        key={transfer.pendingBackup?.exportedAt ?? "closed"}
+        open={transfer.pendingBackup !== null}
+        backup={transfer.pendingBackup}
+        busy={transfer.busy}
+        error={transfer.error}
+        onCancel={transfer.cancelBackup}
+        onExportBackup={transfer.exportBackup}
+        onApply={transfer.applyBackup}
       />
     </>
   );

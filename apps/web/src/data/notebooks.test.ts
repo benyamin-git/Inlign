@@ -7,6 +7,7 @@ import {
   getNotebook,
   listNotebooks,
   reorderNotebooks,
+  replaceAllNotebooks,
   updateNotebook,
 } from "./notebooks.ts";
 
@@ -317,4 +318,107 @@ test("rejects duplicate ids in a reorder", async () => {
   await expect(reorderNotebooks("unpinned", [notebook.id, notebook.id])).rejects.toThrow(
     "Reorder list contains duplicate notebook ids",
   );
+});
+
+test("replaces every notebook in one transaction with the stored pinned mapping", async () => {
+  const existing = await createNotebook("Existing");
+  const first = {
+    id: crypto.randomUUID(),
+    title: "First imported",
+    lines: [
+      { id: crypto.randomUUID(), text: "one" },
+      { id: crypto.randomUUID(), text: "two" },
+    ],
+    pinned: true,
+    sortOrder: 4,
+    createdAt: 100,
+    updatedAt: 200,
+  };
+  const second = {
+    id: crypto.randomUUID(),
+    title: "Second imported",
+    lines: [{ id: crypto.randomUUID(), text: "three" }],
+    pinned: false,
+    sortOrder: 1,
+    createdAt: 300,
+    updatedAt: 400,
+  };
+
+  await replaceAllNotebooks([first, second]);
+
+  await expect(getNotebook(existing.id)).resolves.toBeUndefined();
+  await expect(listNotebooks()).resolves.toEqual([first, second]);
+
+  // The boolean is mapped back at the repository boundary, not persisted.
+  const raw = await db.notebooks.toArray();
+  expect(Object.fromEntries(raw.map((record) => [record.id, record.pinned]))).toEqual({
+    [first.id]: 1,
+    [second.id]: 0,
+  });
+});
+
+test("replaces the table with an empty list", async () => {
+  await createNotebook("First");
+  await createNotebook("Second");
+
+  await replaceAllNotebooks([]);
+
+  await expect(listNotebooks()).resolves.toEqual([]);
+});
+
+test("round-trips a replaced list through the repository", async () => {
+  const notebooks = [
+    {
+      id: crypto.randomUUID(),
+      title: "Only",
+      lines: [{ id: crypto.randomUUID(), text: "kept" }],
+      pinned: true,
+      sortOrder: -1,
+      createdAt: 1,
+      updatedAt: 2,
+    },
+  ];
+
+  await replaceAllNotebooks(notebooks);
+
+  await expect(listNotebooks()).resolves.toEqual(notebooks);
+});
+
+test("rejects an invalid replacement before clearing the table", async () => {
+  const existing = await createNotebook("Existing");
+
+  await expect(
+    replaceAllNotebooks([
+      {
+        id: crypto.randomUUID(),
+        title: "Empty",
+        lines: [],
+        pinned: false,
+        sortOrder: 0,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ]),
+  ).rejects.toThrow("A notebook must have at least one line");
+
+  await expect(listNotebooks()).resolves.toMatchObject([{ id: existing.id }]);
+});
+
+test("rejects duplicate ids in a replacement without writing anything", async () => {
+  const existing = await createNotebook("Existing");
+  const duplicate = {
+    id: crypto.randomUUID(),
+    title: "Duplicate",
+    lines: [{ id: crypto.randomUUID(), text: "text" }],
+    pinned: false,
+    sortOrder: 0,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+
+  await expect(replaceAllNotebooks([duplicate, duplicate])).rejects.toThrow(
+    `Duplicate notebook id ${duplicate.id}`,
+  );
+
+  await expect(listNotebooks()).resolves.toMatchObject([{ id: existing.id }]);
 });

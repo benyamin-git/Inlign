@@ -219,3 +219,92 @@ test("reorder persists a section order and refreshes the list", async () => {
   expect(result.current.notebooks.map((notebook) => notebook.id)).toEqual([first.id, second.id]);
   await expect(listNotebooks()).resolves.toMatchObject([{ id: first.id }, { id: second.id }]);
 });
+
+function replacedNotebook(id: string, title: string) {
+  return {
+    id,
+    title,
+    lines: [{ id: crypto.randomUUID(), text: `${title} line` }],
+    pinned: false,
+    sortOrder: 0,
+    createdAt: 10,
+    updatedAt: 20,
+  };
+}
+
+test("replaceAll writes every notebook, refreshes and keeps an existing active id", async () => {
+  const first = await createNotebook("First");
+  const second = await createNotebook("Second");
+  const { result } = renderHook(() => useNotebooks());
+
+  await waitFor(() => {
+    expect(result.current.notebooks).toHaveLength(2);
+  });
+
+  act(() => {
+    result.current.select(second.id);
+  });
+
+  const replacement = replacedNotebook(second.id, "Second restored");
+  const added = replacedNotebook(crypto.randomUUID(), "Added");
+  const revision = result.current.revision;
+
+  await act(async () => {
+    await result.current.replaceAll([replacement, added]);
+  });
+
+  expect(result.current.activeId).toBe(second.id);
+  expect(result.current.revision).toBe(revision + 1);
+  expect(result.current.notebooks).toHaveLength(2);
+  expect(result.current.notebooks.find((notebook) => notebook.id === second.id)?.title).toBe(
+    "Second restored",
+  );
+  await expect(listNotebooks()).resolves.toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ id: added.id, title: "Added" }),
+      expect.objectContaining({ id: second.id, title: "Second restored" }),
+    ]),
+  );
+  await expect(listNotebooks()).resolves.not.toEqual(
+    expect.arrayContaining([expect.objectContaining({ id: first.id })]),
+  );
+});
+
+test("replaceAll selects the first notebook when the active id is gone", async () => {
+  const first = await createNotebook("First");
+  const { result } = renderHook(() => useNotebooks());
+
+  await waitFor(() => {
+    expect(result.current.notebooks).toHaveLength(1);
+  });
+
+  act(() => {
+    result.current.select(first.id);
+  });
+
+  const replacement = replacedNotebook(crypto.randomUUID(), "Replacement");
+
+  await act(async () => {
+    await result.current.replaceAll([replacement]);
+  });
+
+  expect(result.current.activeId).toBe(replacement.id);
+  expect(result.current.notebooks.map((notebook) => notebook.id)).toEqual([replacement.id]);
+});
+
+test("replaceAll with an empty list clears notebooks and the active id", async () => {
+  await createNotebook("First");
+  const { result } = renderHook(() => useNotebooks());
+
+  await waitFor(() => {
+    expect(result.current.notebooks).toHaveLength(1);
+  });
+
+  await act(async () => {
+    await result.current.replaceAll([]);
+  });
+
+  expect(result.current.notebooks).toEqual([]);
+  expect(result.current.activeId).toBeNull();
+  await expect(listNotebooks()).resolves.toEqual([]);
+});

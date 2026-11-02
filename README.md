@@ -8,8 +8,8 @@ values in place.
 > complete: the workspace, Rust/WASM engine pipeline, worker, build, tests, an
 > installable PWA, one-line card editing, card reordering, sidebar notebook
 > ordering and pinning by pointer, touch and keyboard, autosave, the
-> Light/Dark/OLED theme and six-accent settings sheet, and `.inlign` notebook
-> export and import all work. Math is still
+> Light/Dark/OLED theme and six-accent settings sheet, `.inlign` notebook
+> export and import, and JSON backup and restore all work. Math is still
 > to come. The previous
 > implementation is archived at
 > [benyamin-git/Inlign-legacy](https://github.com/benyamin-git/Inlign-legacy).
@@ -38,6 +38,11 @@ values in place.
   with one line per row and no trailing newline. Settings → Data imports an
   `.inlign` file as a new notebook titled from its filename, and can export the
   active notebook.
+- Settings → Data exports a versioned `inlign-backup.json` backup containing
+  every notebook and the theme and accent. Importing one offers Add as new
+  (fresh ids), Merge (update matching ids, add missing, keep the rest) or
+  Replace all. Replace downloads a safety backup first and asks for a second
+  confirmation; all import modes validate the file before writing.
 
 ## Why it exists
 
@@ -167,7 +172,9 @@ preview server to test install and offline behavior.
 
 There are no accounts, no telemetry and no requests to third-party services
 after the page loads. Notebooks are stored in IndexedDB in the browser;
-`.inlign` files export a single notebook, and JSON backup is planned.
+`.inlign` files export a single notebook, and Settings → Data exports a JSON
+backup of every notebook and the appearance settings. A restore never writes
+before the file validates and a mode is chosen.
 
 ## CI
 
@@ -193,9 +200,8 @@ pnpm build
 ## Limitations
 
 - No math engine yet: no parsing, solving, checking, results or conflicts.
-- No JSON backup or restore yet.
 - No structural undo; only the textarea's native undo exists.
-- iOS may evict IndexedDB storage, so keep `.inlign` exports of anything
-  important.
+- iOS may evict IndexedDB storage, so keep `.inlign` or JSON backup exports of
+  anything important.
 
 MIT licensed; see `LICENSE`.

@@ -7,11 +7,13 @@ import { useNotebookEditor } from "./useNotebookEditor.ts";
 
 export type NotebookEditorProps = {
   notebook: Notebook;
+  /** Changes when the whole notebook table is restored, forcing a reload. */
+  revision?: number;
   /** Lets the app export the in-memory lines before autosave catches up. */
   onLinesChange?: ((lines: Line[]) => void) | undefined;
 };
 
-export function NotebookEditor({ notebook, onLinesChange }: NotebookEditorProps) {
+export function NotebookEditor({ notebook, revision = 0, onLinesChange }: NotebookEditorProps) {
   const {
     lines,
     focus,
@@ -22,7 +24,7 @@ export function NotebookEditor({ notebook, onLinesChange }: NotebookEditorProps)
     onNavigate,
     onPaste,
     onReorder,
-  } = useNotebookEditor(notebook);
+  } = useNotebookEditor(notebook, revision);
 
   const handleAction = useCallback(
     (lineId: string, action: LineAction) => {

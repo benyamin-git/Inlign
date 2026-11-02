@@ -61,7 +61,7 @@ test("exports a notebook and imports it back as a new one", async ({ page }) => 
   const dialog = page.getByRole("dialog", { name: "Settings" });
 
   await expect(dialog).toBeVisible();
-  await dialog.locator('input[type="file"]').setInputFiles({
+  await dialog.locator('input[accept*=".inlign"]').setInputFiles({
     name: download.suggestedFilename(),
     mimeType: "text/plain",
     buffer: bytes,

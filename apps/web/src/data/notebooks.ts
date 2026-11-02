@@ -133,6 +133,33 @@ export async function deleteNotebook(id: string): Promise<void> {
   await db.notebooks.delete(id);
 }
 
+/**
+ * Replaces the whole notebook table in one transaction. Validation happens
+ * before the transaction opens so an invalid list can never clear the table.
+ */
+export async function replaceAllNotebooks(notebooks: readonly Notebook[]): Promise<void> {
+  const ids = new Set<string>();
+
+  for (const notebook of notebooks) {
+    if (notebook.lines.length === 0) {
+      throw new Error("A notebook must have at least one line");
+    }
+
+    if (ids.has(notebook.id)) {
+      throw new Error(`Duplicate notebook id ${notebook.id}`);
+    }
+
+    ids.add(notebook.id);
+  }
+
+  const records = notebooks.map(toRecord);
+
+  await db.transaction("rw", db.notebooks, async () => {
+    await db.notebooks.clear();
+    await db.notebooks.bulkPut(records);
+  });
+}
+
 // Pinning or unpinning does not place a notebook in a section on its own.
 // After changing `pinned`, the sidebar must call `reorderNotebooks` for the
 // notebook's new section.

@@ -36,7 +36,7 @@ export type UseNotebookEditor = {
  * writes go straight to storage so a pending text snapshot cannot replace a
  * newer set of lines.
  */
-export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
+export function useNotebookEditor(notebook: Notebook, revision = 0): UseNotebookEditor {
   const [state, setState] = useState<EditorState>(() => {
     const lines = ensureLines(notebook.lines);
 
@@ -44,6 +44,7 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
   });
   const stateRef = useRef(state);
   const focusTokenRef = useRef(1);
+  const revisionRef = useRef(revision);
   // A slow repository read must not clobber text the user already typed.
   const editedRef = useRef(false);
   const { schedule: scheduleAutosave, cancel: cancelAutosave } = useAutosave(notebook.id);
@@ -173,13 +174,23 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
   );
 
   // The sidebar list can be stale after edits, so the editor loads the stored
-  // notebook itself and focuses its first line whenever it mounts.
+  // notebook itself and focuses its first line whenever it mounts. A restore
+  // bumps `revision`, which must reload even when local edits are pending and
+  // must drop the old debounced write so it cannot overwrite the import.
   useEffect(() => {
     let cancelled = false;
+    const restored = revisionRef.current !== revision;
+
+    revisionRef.current = revision;
+
+    if (restored) {
+      cancelAutosave();
+      editedRef.current = false;
+    }
 
     void getNotebook(notebook.id).then(
       (fresh) => {
-        if (cancelled || editedRef.current || !fresh) {
+        if (cancelled || (!restored && editedRef.current) || !fresh) {
           return;
         }
 
@@ -202,7 +213,7 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
     return () => {
       cancelled = true;
     };
-  }, [notebook.id]);
+  }, [notebook.id, revision, cancelAutosave]);
 
   return {
     lines: state.lines,

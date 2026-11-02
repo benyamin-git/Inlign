@@ -6,6 +6,7 @@ import {
   deleteNotebook,
   listNotebooks,
   reorderNotebooks,
+  replaceAllNotebooks,
   updateNotebook,
 } from "../../data/notebooks.ts";
 
@@ -14,17 +15,21 @@ export type NotebookSection = "pinned" | "unpinned";
 export type UseNotebooks = {
   notebooks: Notebook[];
   activeId: string | null;
+  /** Bumped whenever the whole table is replaced so open editors reload. */
+  revision: number;
   select: (id: string | null) => void;
   create: (title?: string, lines?: Line[]) => Promise<Notebook>;
   rename: (id: string, title: string) => Promise<void>;
   setPinned: (id: string, pinned: boolean) => Promise<void>;
   remove: (id: string) => Promise<void>;
   reorder: (section: NotebookSection, orderedIds: string[]) => Promise<void>;
+  replaceAll: (notebooks: Notebook[]) => Promise<void>;
 };
 
 export function useNotebooks(): UseNotebooks {
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
   // Guards against an earlier list request overwriting a newer mutation's list.
   const requestRef = useRef(0);
   const notebooksRef = useRef<Notebook[]>([]);
@@ -152,5 +157,33 @@ export function useNotebooks(): UseNotebooks {
     [refresh],
   );
 
-  return { notebooks, activeId, select, create, rename, setPinned, remove, reorder };
+  const replaceAll = useCallback(
+    async (next: Notebook[]): Promise<void> => {
+      await replaceAllNotebooks(next);
+      const refreshed = await refresh();
+
+      setActiveId((current) => {
+        if (current && refreshed.some((notebook) => notebook.id === current)) {
+          return current;
+        }
+
+        return refreshed[0]?.id ?? null;
+      });
+      setRevision((current) => current + 1);
+    },
+    [refresh],
+  );
+
+  return {
+    notebooks,
+    activeId,
+    revision,
+    select,
+    create,
+    rename,
+    setPinned,
+    remove,
+    reorder,
+    replaceAll,
+  };
 }
