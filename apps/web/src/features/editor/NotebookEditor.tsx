@@ -10,8 +10,17 @@ export type NotebookEditorProps = {
 };
 
 export function NotebookEditor({ notebook }: NotebookEditorProps) {
-  const { lines, focus, onChange, onSplit, onMergePrevious, onMergeNext, onNavigate, onPaste } =
-    useNotebookEditor(notebook);
+  const {
+    lines,
+    focus,
+    onChange,
+    onSplit,
+    onMergePrevious,
+    onMergeNext,
+    onNavigate,
+    onPaste,
+    onReorder,
+  } = useNotebookEditor(notebook);
 
   const handleAction = useCallback(
     (lineId: string, action: LineAction) => {
@@ -38,5 +47,5 @@ export function NotebookEditor({ notebook }: NotebookEditorProps) {
     [onChange, onSplit, onMergePrevious, onMergeNext, onNavigate, onPaste],
   );
 
-  return <LineCardList lines={lines} focus={focus} onAction={handleAction} />;
+  return <LineCardList lines={lines} focus={focus} onAction={handleAction} onReorder={onReorder} />;
 }

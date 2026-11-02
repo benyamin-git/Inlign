@@ -27,6 +27,7 @@ export type UseNotebookEditor = {
   onMergeNext: (lineId: string) => void;
   onNavigate: (lineId: string, direction: -1 | 1, offset: number) => void;
   onPaste: (lineId: string, offset: number, text: string, end?: number) => void;
+  onReorder: (lines: Line[]) => void;
 };
 
 /**
@@ -151,6 +152,15 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
     [commitFocus],
   );
 
+  // A drop reorders the whole document and writes immediately; only the caret
+  // line survives unchanged, so the focus token is left alone.
+  const onReorder = useCallback(
+    (lines: Line[]) => {
+      commitLines(lines);
+    },
+    [commitLines],
+  );
+
   // The sidebar list can be stale after edits, so the editor loads the stored
   // notebook itself and focuses its first line whenever it mounts.
   useEffect(() => {
@@ -192,5 +202,6 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
     onMergeNext,
     onNavigate,
     onPaste,
+    onReorder,
   };
 }

@@ -6,8 +6,9 @@ values in place.
 
 > Early development. The foundation milestone and the first card editor are
 > complete: the workspace, Rust/WASM engine pipeline, worker, build, tests, an
-> installable PWA and one-line card editing all work. Drag, autosave and math
-> are still to come. The previous implementation is archived at
+> installable PWA, one-line card editing and card reordering by pointer, touch
+> and keyboard all work. Autosave and math are still to come. The previous
+> implementation is archived at
 > [benyamin-git/Inlign-legacy](https://github.com/benyamin-git/Inlign-legacy).
 
 ## What works now
@@ -21,7 +22,8 @@ values in place.
 - The page now shows the real app shell: a collapsible notebook sidebar, an
   empty state, and create, inline rename, pin and delete flows backed by
   IndexedDB. The editor renders one logical line per card: Enter splits,
-  Backspace and Delete merge, and pasted newlines become separate cards.
+  Backspace and Delete merge, pasted newlines become separate cards, and cards
+  can be dragged by their grip or moved with the keyboard.
 
 ## Why it exists
 
@@ -176,7 +178,7 @@ pnpm build
 ## Limitations
 
 - No math engine yet: no parsing, solving, checking, results or conflicts.
-- No drag and drop, autosave or import/export yet.
+- No autosave or import/export yet.
 - No settings or theme picker yet; the shell follows the stored theme.
 - No structural undo; only the textarea's native undo exists.
 - iOS may evict IndexedDB storage, so backups will matter once export lands.

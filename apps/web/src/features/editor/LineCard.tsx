@@ -1,3 +1,5 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 
 import type { Line } from "../../data/models.ts";
@@ -15,6 +17,15 @@ export type LineCardProps = {
 export function LineCard({ line, index, total, onAction }: LineCardProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { onKeyDown, onPaste } = useLineKeys({ index, total, onAction });
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: line.id });
 
   const grow = useCallback(() => {
     const textarea = textareaRef.current;
@@ -84,13 +95,28 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
   }, [grow]);
 
   return (
-    <li className="flex items-start gap-2 rounded-card border border-outline bg-surface-container px-3 py-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary md:py-2">
-      <span
-        aria-hidden="true"
-        className="mt-0.5 flex h-6 w-5 shrink-0 items-center justify-center text-on-surface-variant opacity-70"
+    <li
+      ref={setNodeRef}
+      data-line-id={line.id}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={`relative flex items-start gap-2 rounded-card border border-outline bg-surface-container px-3 py-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary md:py-2 ${
+        isDragging ? "z-10 border-primary bg-surface-container-high" : ""
+      }`}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        ref={setActivatorNodeRef}
+        type="button"
+        aria-label={`Move line ${String(index + 1)}`}
+        data-line-grip=""
+        className="mt-0.5 flex h-10 w-10 shrink-0 cursor-grab touch-none items-center justify-center rounded-button text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary pointer-coarse:h-12 pointer-coarse:w-12"
       >
         <GripIcon className="h-4 w-4" />
-      </span>
+      </button>
       <textarea
         ref={textareaRef}
         aria-label={`Line ${String(index + 1)}`}
