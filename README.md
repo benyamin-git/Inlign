@@ -7,8 +7,9 @@ values in place.
 > Early development. The foundation milestone and the first card editor are
 > complete: the workspace, Rust/WASM engine pipeline, worker, build, tests, an
 > installable PWA, one-line card editing, card reordering, sidebar notebook
-> ordering and pinning by pointer, touch and keyboard, and autosave all work.
-> Math is still to come. The previous
+> ordering and pinning by pointer, touch and keyboard, autosave, and the
+> Light/Dark/OLED theme and six-accent settings sheet all work. Math is still
+> to come. The previous
 > implementation is archived at
 > [benyamin-git/Inlign-legacy](https://github.com/benyamin-git/Inlign-legacy).
 
@@ -29,6 +30,9 @@ values in place.
   can be dragged by their grip or moved with the keyboard. Text edits autosave
   after a 400 ms pause and flush when the page is hidden, so a reload or a
   notebook switch keeps the latest lines.
+- The settings sheet switches between Light, Dark and OLED and all six accents.
+  The choice is stored in IndexedDB, mirrored to localStorage so the first
+  paint never flashes the wrong theme, and follows the OS until you pick one.
 
 ## Why it exists
 
@@ -128,7 +132,8 @@ file is committed and drift-checked: rerun the script and
 apps/web/                   React 19 + Vite 8 PWA
   src/app/                  app shell
   src/engine/               worker client, protocol, worker
-  src/theme/                tokens.css, generated accents.css, theme hook
+  src/features/             editor, notebooks and settings screens
+  src/theme/                tokens.css, generated accents.css, theme helpers
   src/test/                 Vitest setup
   e2e/                      Playwright tests
   public/                   favicon and PWA icons
@@ -183,8 +188,7 @@ pnpm build
 ## Limitations
 
 - No math engine yet: no parsing, solving, checking, results or conflicts.
-- No import/export yet.
-- No settings or theme picker yet; the shell follows the stored theme.
+- No import/export or backup yet; the settings Data section is a placeholder.
 - No structural undo; only the textarea's native undo exists.
 - iOS may evict IndexedDB storage, so backups will matter once export lands.
 

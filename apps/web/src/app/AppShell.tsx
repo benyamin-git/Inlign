@@ -13,13 +13,14 @@ export type SidebarRenderOptions = {
 
 export type AppShellProps = {
   activeTitle: string | null;
+  onOpenSettings: () => void;
   sidebar: (options: SidebarRenderOptions) => ReactNode;
   children: ReactNode;
 };
 
 const NARROW_QUERY = "(max-width: 767px)";
 
-export function AppShell({ activeTitle, sidebar, children }: AppShellProps) {
+export function AppShell({ activeTitle, onOpenSettings, sidebar, children }: AppShellProps) {
   const isNarrow = useMediaQuery(NARROW_QUERY);
   // Desktop collapse and the narrow drawer are separate: resizing must not
   // open a modal drawer unrequested or collapse the desktop sidebar.
@@ -56,7 +57,7 @@ export function AppShell({ activeTitle, sidebar, children }: AppShellProps) {
         >
           {activeTitle ?? ""}
         </p>
-        <IconButton label="Settings, coming soon" disabled>
+        <IconButton label="Settings" aria-haspopup="dialog" onClick={onOpenSettings}>
           <SettingsIcon />
         </IconButton>
       </header>

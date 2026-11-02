@@ -10,11 +10,12 @@
     <title>Inlign</title>
     <script>
       // Resolve the theme before the module script runs so a dark or OLED load
-      // never flashes light. Dexie stays the source of truth; useTheme
+      // never flashes light. Dexie stays the source of truth; useSettings
       // reconciles this mirror once settings load.
       (function () {
         var themes = ["light", "dark", "oled"];
         var accents = ["blue", "teal", "green", "orange", "rose", "violet"];
+        var themeColors = { light: "#fffbfe", dark: "#1c1b1f", oled: "#000000" };
         var theme = null;
         var accent = "blue";
 
@@ -43,6 +44,11 @@
         root.dataset.theme = theme;
         root.dataset.accent = accent;
         root.style.colorScheme = theme === "light" ? "light" : "dark";
+
+        var themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) {
+          themeColor.setAttribute("content", themeColors[theme]);
+        }
       })();
     </script>
   </head>

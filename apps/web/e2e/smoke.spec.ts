@@ -6,5 +6,5 @@ test("shows the first-run shell", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "No notebooks yet" })).toBeVisible();
   await expect(page.getByRole("main").getByRole("button", { name: "New notebook" })).toBeVisible();
   await expect(page.getByTestId("active-title")).toHaveText("");
-  await expect(page.getByRole("button", { name: "Settings, coming soon" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Settings" })).toBeEnabled();
 });

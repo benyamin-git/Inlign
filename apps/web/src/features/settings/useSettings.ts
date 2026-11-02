@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import type { Accent, Settings, Theme } from "../data/models.ts";
-import { getSettings, isAccent, isTheme, setSetting } from "../data/settings.ts";
-import { applyTheme, resolveTheme } from "./theme.ts";
+import type { Accent, Theme } from "../../data/models.ts";
+import { getSettings, isAccent, isTheme, setSetting } from "../../data/settings.ts";
+import { applyTheme, resolveTheme } from "../../theme/theme.ts";
 
 export const THEME_STORAGE_KEY = "inlign.theme";
 export const ACCENT_STORAGE_KEY = "inlign.accent";
 
 const DEFAULT_ACCENT: Accent = "blue";
 
-export type UseTheme = {
+export type SettingsModel = {
   /** The stored preference; null follows the OS. */
   theme: Theme | null;
   /** The theme actually applied, after resolving a null preference. */
@@ -69,21 +69,22 @@ function readMirroredAccent(): Accent {
   return isAccent(stored) ? stored : DEFAULT_ACCENT;
 }
 
-function mirror(settings: Settings): void {
-  // A null theme follows the OS, so no concrete theme is mirrored: removing
-  // the key lets the next pre-paint follow the OS as it stands then.
-  writeStorage(THEME_STORAGE_KEY, settings.theme);
-  writeStorage(ACCENT_STORAGE_KEY, settings.accent);
-}
-
-export function useTheme(): UseTheme {
-  // Seeded from the mirror so the first render agrees with the pre-paint
-  // script; Dexie then reconciles both the state and the mirror.
+/**
+ * Loads settings, applies the theme live and persists every change. The
+ * localStorage mirror is seeded before the first render so the app agrees with
+ * the pre-paint script; Dexie then reconciles it as the source of truth.
+ */
+export function useSettings(): SettingsModel {
   const [theme, setThemeState] = useState<Theme | null>(readMirroredTheme);
   const [accent, setAccentState] = useState<Accent>(readMirroredAccent);
   // Following the OS is a live subscription, so returning to `theme: null`
   // picks up the current preference instead of the one at mount.
   const systemDark = useSyncExternalStore(subscribeToSystemTheme, prefersDark, () => false);
+  // The initial Dexie read can finish after the user has already picked a
+  // value. Each field is reconciled only while it is still untouched, so a
+  // slow load never overwrites a newer choice.
+  const touchedTheme = useRef(false);
+  const touchedAccent = useRef(false);
 
   const resolvedTheme = resolveTheme(theme, systemDark);
 
@@ -96,9 +97,15 @@ export function useTheme(): UseTheme {
           return;
         }
 
-        setThemeState(settings.theme);
-        setAccentState(settings.accent);
-        mirror(settings);
+        if (!touchedTheme.current) {
+          setThemeState(settings.theme);
+          writeStorage(THEME_STORAGE_KEY, settings.theme);
+        }
+
+        if (!touchedAccent.current) {
+          setAccentState(settings.accent);
+          writeStorage(ACCENT_STORAGE_KEY, settings.accent);
+        }
       },
       () => {
         // Dexie is unavailable; keep the mirrored preference for this session.
@@ -115,15 +122,27 @@ export function useTheme(): UseTheme {
   }, [resolvedTheme, accent]);
 
   const setTheme = useCallback(async (next: Theme | null) => {
+    touchedTheme.current = true;
     setThemeState(next);
     writeStorage(THEME_STORAGE_KEY, next);
-    await setSetting("theme", next);
+
+    try {
+      await setSetting("theme", next);
+    } catch {
+      // Persistence failed; the session keeps the new preference.
+    }
   }, []);
 
   const setAccent = useCallback(async (next: Accent) => {
+    touchedAccent.current = true;
     setAccentState(next);
     writeStorage(ACCENT_STORAGE_KEY, next);
-    await setSetting("accent", next);
+
+    try {
+      await setSetting("accent", next);
+    } catch {
+      // Persistence failed; the session keeps the new preference.
+    }
   }, []);
 
   return { theme, resolvedTheme, accent, setTheme, setAccent };

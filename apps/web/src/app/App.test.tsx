@@ -48,8 +48,21 @@ test("creating from the empty state selects the new notebook", async () => {
   await expect(listNotebooks()).resolves.toHaveLength(1);
 });
 
-test("the settings button is disabled and honestly labelled", () => {
+test("the settings button opens the settings dialog and closes with Escape", async () => {
+  const user = userEvent.setup();
+
   render(<App />);
 
-  expect(screen.getByRole("button", { name: "Settings, coming soon" })).toBeDisabled();
+  const opener = screen.getByRole("button", { name: "Settings" });
+
+  expect(opener).toBeEnabled();
+
+  await user.click(opener);
+
+  expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+
+  await user.keyboard("{Escape}");
+
+  expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
+  expect(opener).toHaveFocus();
 });

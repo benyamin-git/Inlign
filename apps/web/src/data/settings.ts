@@ -3,8 +3,8 @@ import type { Accent, Settings, Theme } from "./models.ts";
 
 const DEFAULT_SETTINGS: Settings = { theme: null, accent: "blue" };
 
-const THEMES = ["light", "dark", "oled"] as const satisfies readonly Theme[];
-const ACCENTS = [
+export const THEMES = ["light", "dark", "oled"] as const satisfies readonly Theme[];
+export const ACCENTS = [
   "blue",
   "teal",
   "green",

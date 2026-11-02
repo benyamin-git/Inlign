@@ -55,6 +55,14 @@ export function SettingsIcon(props: IconProps) {
   );
 }
 
+export function CheckIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 12.5l4.5 4.5L19 7" />
+    </Icon>
+  );
+}
+
 export function PinIcon(props: IconProps) {
   return (
     <Icon {...props}>
