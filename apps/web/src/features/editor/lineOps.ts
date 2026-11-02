@@ -1,4 +1,5 @@
 import type { Line } from "../../data/models.ts";
+import { createId } from "../../lib/id.ts";
 
 /**
  * A keyboard or paste intent from a line card. Change and paste carry the text
@@ -22,7 +23,7 @@ function ensureLines(lines: Line[]): Line[] {
     return lines;
   }
 
-  return [{ id: crypto.randomUUID(), text: "" }];
+  return [{ id: createId(), text: "" }];
 }
 
 function clampOffset(text: string, offset: number): number {
@@ -51,7 +52,7 @@ export function splitLine(
   }
 
   const range = clampRange(line.text, offset, end);
-  const nextLine: Line = { id: crypto.randomUUID(), text: line.text.slice(range.end) };
+  const nextLine: Line = { id: createId(), text: line.text.slice(range.end) };
   const nextLines = safeLines.map((current, currentIndex) =>
     currentIndex === index ? { ...current, text: current.text.slice(0, range.start) } : current,
   );
@@ -126,7 +127,7 @@ export function insertText(
   }
 
   const added: Line[] = segments.slice(1).map((segment, segmentIndex) => ({
-    id: crypto.randomUUID(),
+    id: createId(),
     text: segmentIndex === segments.length - 2 ? segment + after : segment,
   }));
   const firstLine: Line = { id: line.id, text: before + firstSegment };

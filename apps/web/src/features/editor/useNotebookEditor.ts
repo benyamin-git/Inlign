@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Line, Notebook } from "../../data/models.ts";
 import { getNotebook, updateNotebook } from "../../data/notebooks.ts";
+import { createId } from "../../lib/id.ts";
 import { useAutosave } from "./useAutosave.ts";
 import {
   insertText,
@@ -16,7 +17,7 @@ export type EditorFocus = { lineId: string; offset: number; token: number };
 type EditorState = { lines: Line[]; focus: EditorFocus };
 
 function ensureLines(lines: Line[]): Line[] {
-  return lines.length > 0 ? lines : [{ id: crypto.randomUUID(), text: "" }];
+  return lines.length > 0 ? lines : [{ id: createId(), text: "" }];
 }
 
 export type UseNotebookEditor = {

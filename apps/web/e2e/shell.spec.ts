@@ -70,6 +70,35 @@ test("creates, renames and deletes notebooks", async ({ page }) => {
   await expect(sidebar.getByRole("button", { name: "Alpha", exact: true })).toBeVisible();
 });
 
+test("creates a notebook without crypto.randomUUID", async ({ page }) => {
+  // LAN access over plain HTTP is an insecure context, where randomUUID is
+  // unavailable; the app must still create notebook and line ids.
+  await page.addInitScript(() => {
+    const browserCrypto = (
+      globalThis as unknown as {
+        crypto: { randomUUID?: () => string };
+      }
+    ).crypto;
+
+    Object.defineProperty(browserCrypto, "randomUUID", {
+      value: undefined,
+      configurable: true,
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("main").getByRole("button", { name: "New notebook" }).click();
+
+  await expect(page.getByTestId("active-title")).toHaveText("Untitled");
+
+  const first = page.getByRole("textbox", { name: "Line 1" });
+
+  await expect(first).toBeVisible();
+  await first.fill("works");
+  await first.press("Enter");
+  await expect(page.getByRole("textbox", { name: "Line 2" })).toBeVisible();
+});
+
 test.describe("narrow viewport", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 

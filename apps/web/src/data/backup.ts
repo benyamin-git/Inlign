@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { Accent, Notebook, Settings, Theme } from "./models.ts";
+import { createId } from "../lib/id.ts";
 
 export const BACKUP_FORMAT = "inlign-backup";
 export const BACKUP_VERSION = 1;
@@ -117,8 +118,8 @@ export function withFreshIds(backup: Backup): Backup {
     ...backup,
     notebooks: backup.notebooks.map((notebook) => ({
       ...notebook,
-      id: crypto.randomUUID(),
-      lines: notebook.lines.map((line) => ({ id: crypto.randomUUID(), text: line.text })),
+      id: createId(),
+      lines: notebook.lines.map((line) => ({ id: createId(), text: line.text })),
     })),
   };
 }

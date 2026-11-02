@@ -1,4 +1,5 @@
 import { db, type NotebookRecord } from "./db.ts";
+import { createId } from "../lib/id.ts";
 import type { Line, Notebook } from "./models.ts";
 
 const MAX_TITLE_LENGTH = 120;
@@ -41,11 +42,11 @@ export async function createNotebook(title?: string, lines?: Line[]): Promise<No
       unpinned.length === 0 ? 0 : Math.min(...unpinned.map((notebook) => notebook.sortOrder)) - 1;
     const now = Date.now();
     const notebook: Notebook = {
-      id: crypto.randomUUID(),
+      id: createId(),
       title: normalizeTitle(title),
       lines: lines
         ? lines.map((line) => ({ id: line.id, text: line.text }))
-        : [{ id: crypto.randomUUID(), text: "" }],
+        : [{ id: createId(), text: "" }],
       pinned: false,
       sortOrder,
       createdAt: now,

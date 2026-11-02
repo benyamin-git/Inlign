@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { Line } from "../../data/models.ts";
+import { createId } from "../../lib/id.ts";
 import { LineCard } from "./LineCard.tsx";
 import { moveLine, type LineAction } from "./lineOps.ts";
 import { CardDndProvider } from "./useCardDnd.tsx";
@@ -15,7 +16,7 @@ export type LineCardListProps = {
 
 export function LineCardList({ lines, focus, onAction, onReorder }: LineCardListProps) {
   const listRef = useRef<HTMLOListElement>(null);
-  const [fallback] = useState<Line>(() => ({ id: crypto.randomUUID(), text: "" }));
+  const [fallback] = useState<Line>(() => ({ id: createId(), text: "" }));
 
   // Defensive only: the editor state always holds at least one line.
   const visibleLines = useMemo(() => (lines.length > 0 ? lines : [fallback]), [lines, fallback]);

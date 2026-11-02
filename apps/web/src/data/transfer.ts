@@ -1,3 +1,4 @@
+import { createId } from "../lib/id.ts";
 import type { Line, Notebook } from "./models.ts";
 
 const MAX_TITLE_LENGTH = 120;
@@ -17,7 +18,7 @@ export function parseInlign(text: string, fallbackTitle: string): ParsedInlign {
   return {
     title,
     lines: normalized.split("\n").map((lineText) => ({
-      id: crypto.randomUUID(),
+      id: createId(),
       text: lineText,
     })),
   };

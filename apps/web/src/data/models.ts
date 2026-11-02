@@ -1,7 +1,7 @@
 export type Line = { id: string; text: string };
 
 export type Notebook = {
-  id: string; // crypto.randomUUID()
+  id: string; // createId()
   title: string; // trimmed, max 120 chars
   lines: Line[]; // source of truth; at least one line
   pinned: boolean;
