@@ -101,6 +101,16 @@ pnpm --filter @inlign/web preview
 
 The preview server also binds `0.0.0.0:7406` with a strict port.
 
+For a detached live server, run:
+
+```sh
+./scripts/live.sh
+```
+
+It builds the WASM package, starts the Vite dev server in the background on
+`0.0.0.0:7406`, and logs to `/tmp/inlign-liveserver.log`. Override the port with
+`LIVE_SERVER_PORT`; stop it with `kill $(cat /tmp/inlign-liveserver.pid)`.
+
 ## Commands
 
 Run these from the repository root.
@@ -108,6 +118,7 @@ Run these from the repository root.
 | Command | What it does |
 | --- | --- |
 | `pnpm dev` | Build WASM, then start the Vite dev server on `0.0.0.0:7406`. |
+| `./scripts/live.sh` | Build WASM, then start a detached Vite dev server on `0.0.0.0:7406`. |
 | `pnpm build` | Build WASM, then the production PWA into `apps/web/dist/`. |
 | `pnpm build:wasm` | Build `packages/engine-wasm/pkg/` with `wasm-pack --target bundler`. |
 | `pnpm generate:accents` | Regenerate the committed accent tokens in `apps/web/src/theme/accents.css`. |

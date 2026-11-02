@@ -29,6 +29,7 @@ Run from the repository root.
 | --- | --- |
 | `pnpm install` | Install workspace dependencies. |
 | `pnpm dev` | Build the WASM package, then serve Vite on `0.0.0.0:7406` with a strict port. |
+| `./scripts/live.sh` | Build the WASM package, then start the detached Vite dev server on `0.0.0.0:7406` (override with `LIVE_SERVER_PORT`); logs to `/tmp/inlign-liveserver.log`; stop with `kill $(cat /tmp/inlign-liveserver.pid)`. |
 | `pnpm build` | Build the WASM package, then the production PWA into `apps/web/dist/`. |
 | `pnpm build:wasm` | Run `wasm-pack build --target bundler` into `packages/engine-wasm/pkg/`. |
 | `pnpm generate:accents` | Regenerate the committed accent tokens in `apps/web/src/theme/accents.css`. |
@@ -83,6 +84,9 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
   repositories in `src/data/` and React hooks such as `useNotebooks`,
   `useSettings` and `useTransfer`. IndexedDB is the store. There is no global
   store and no URL router.
+- **IDs use `createId()`.** `crypto.randomUUID` is secure-context only, so use
+  `src/lib/id.ts` to keep notebook and line ids working on plain-HTTP LAN
+  origins.
 - **Theme uses semantic tokens.** Components use CSS custom properties for
   surfaces, text, outlines and status. Raw hex stays in the theme source and
   the static PWA manifest.
