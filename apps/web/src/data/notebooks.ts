@@ -150,6 +150,16 @@ export async function replaceAllNotebooks(notebooks: readonly Notebook[]): Promi
     }
 
     ids.add(notebook.id);
+
+    const lineIds = new Set<string>();
+
+    for (const line of notebook.lines) {
+      if (lineIds.has(line.id)) {
+        throw new Error(`Duplicate line id ${line.id} in notebook ${notebook.id}`);
+      }
+
+      lineIds.add(line.id);
+    }
   }
 
   const records = notebooks.map(toRecord);

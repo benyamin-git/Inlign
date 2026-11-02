@@ -422,3 +422,24 @@ test("rejects duplicate ids in a replacement without writing anything", async ()
 
   await expect(listNotebooks()).resolves.toMatchObject([{ id: existing.id }]);
 });
+
+test("rejects duplicate line ids in a replacement without writing anything", async () => {
+  const existing = await createNotebook("Existing");
+  const lineId = crypto.randomUUID();
+  const notebook = {
+    id: crypto.randomUUID(),
+    title: "Duplicate lines",
+    lines: [
+      { id: lineId, text: "first" },
+      { id: lineId, text: "second" },
+    ],
+    pinned: false,
+    sortOrder: 0,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+
+  await expect(replaceAllNotebooks([notebook])).rejects.toThrow(`Duplicate line id ${lineId}`);
+
+  await expect(listNotebooks()).resolves.toMatchObject([{ id: existing.id }]);
+});

@@ -29,6 +29,8 @@ export type UseNotebookEditor = {
   onNavigate: (lineId: string, direction: -1 | 1, offset: number) => void;
   onPaste: (lineId: string, offset: number, text: string, end?: number) => void;
   onReorder: (lines: Line[]) => void;
+  /** Drops the debounced text write without saving it. */
+  cancelPendingWrites: () => void;
 };
 
 /**
@@ -225,5 +227,6 @@ export function useNotebookEditor(notebook: Notebook, revision = 0): UseNotebook
     onNavigate,
     onPaste,
     onReorder,
+    cancelPendingWrites: cancelAutosave,
   };
 }

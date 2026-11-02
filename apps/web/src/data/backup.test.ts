@@ -96,6 +96,23 @@ test("rejects a notebook with no lines and names the problem in the message", ()
   expect(message).toContain("at least one line");
 });
 
+test("rejects duplicate line ids within a notebook", () => {
+  const lineId = crypto.randomUUID();
+  const backup = backupWith([
+    makeNotebook({
+      lines: [
+        { id: lineId, text: "first" },
+        { id: lineId, text: "second" },
+      ],
+    }),
+  ]);
+
+  const message = messageOf(() => parseBackup(backup));
+
+  expect(message).toContain("notebooks.0.lines");
+  expect(message).toContain(`Duplicate line id ${lineId}`);
+});
+
 test("rejects an invalid notebook id, title length and numeric fields", () => {
   const invalidId = backupWith([makeNotebook({ id: "not-a-uuid" })]);
 

@@ -256,6 +256,20 @@ test("replace downloads a safety backup first, then restores only the import and
 
   await deleteNotebook(page, "Export A");
   await renameNotebook(page, "Export B", "Export B mutated");
+
+  // Keep the matching notebook id but change its stored line, so a later
+  // replace must restore the backup text rather than only the title.
+  const exportBId = backup.notebooks.find((notebook) => notebook.title === "Export B")?.id;
+
+  await page.getByRole("textbox", { name: "Line 1" }).fill("b mutated");
+  await expect
+    .poll(async () => {
+      const stored = await readNotebooks(page);
+
+      return stored.find((notebook) => notebook.id === exportBId)?.lines[0]?.text;
+    })
+    .toBe("b mutated");
+
   await createNotebook(page, "Local only", ["local line"]);
 
   const reopened = await openSettings(page);
@@ -280,6 +294,9 @@ test("replace downloads a safety backup first, then restores only the import and
     "Export B mutated",
     "Local only",
   ]);
+  expect(
+    safety.notebooks.find((notebook) => notebook.title === "Export B mutated")?.lines[0]?.text,
+  ).toBe("b mutated");
   expect(safety.settings).toEqual({ theme: "dark", accent: "violet" });
 
   await expect(page.getByRole("dialog", { name: "Replace all data?" })).toBeVisible();
@@ -350,6 +367,20 @@ test.describe("short landscape", () => {
     }
 
     expect(keepBox.y + keepBox.height).toBeLessThanOrEqual(390);
+
+    for (const name of ["Keep current data", "Replace all data"]) {
+      const button = page.getByRole("button", { name });
+      const box = await button.boundingBox();
+
+      await expect(button).toBeVisible();
+
+      if (!box) {
+        throw new Error(`${name} is not laid out`);
+      }
+
+      expect(box.y).toBeGreaterThanOrEqual(0);
+      expect(box.y + box.height).toBeLessThanOrEqual(390);
+    }
 
     await keep.click();
     await expect(page.getByRole("dialog", { name: "Import backup" })).toBeVisible();

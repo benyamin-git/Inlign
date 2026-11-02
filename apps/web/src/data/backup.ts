@@ -28,18 +28,36 @@ const lineSchema = z.object({
   text: z.string(),
 });
 
-const notebookSchema = z.object({
-  id: z.uuid("Notebook ids must be UUIDs"),
-  title: z
-    .string()
-    .min(1, "A notebook title cannot be empty")
-    .max(120, "A title is at most 120 characters"),
-  lines: z.array(lineSchema).min(1, "A notebook must have at least one line"),
-  pinned: z.boolean(),
-  sortOrder: z.number(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-});
+const notebookSchema = z
+  .object({
+    id: z.uuid("Notebook ids must be UUIDs"),
+    title: z
+      .string()
+      .min(1, "A notebook title cannot be empty")
+      .max(120, "A title is at most 120 characters"),
+    lines: z.array(lineSchema).min(1, "A notebook must have at least one line"),
+    pinned: z.boolean(),
+    sortOrder: z.number(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+  })
+  .superRefine((notebook, context) => {
+    const lineIds = new Set<string>();
+
+    for (const line of notebook.lines) {
+      if (lineIds.has(line.id)) {
+        context.addIssue({
+          code: "custom",
+          message: `Duplicate line id ${line.id}`,
+          path: ["lines"],
+        });
+
+        return;
+      }
+
+      lineIds.add(line.id);
+    }
+  });
 
 const settingsSchema = z.object({
   theme: z.enum(THEMES).nullable(),

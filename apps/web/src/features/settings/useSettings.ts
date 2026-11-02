@@ -15,8 +15,8 @@ export type SettingsModel = {
   /** The theme actually applied, after resolving a null preference. */
   resolvedTheme: Theme;
   accent: Accent;
-  setTheme: (theme: Theme | null) => Promise<void>;
-  setAccent: (accent: Accent) => Promise<void>;
+  setTheme: (theme: Theme | null) => Promise<boolean>;
+  setAccent: (accent: Accent) => Promise<boolean>;
 };
 
 function prefersDark(): boolean {
@@ -121,27 +121,33 @@ export function useSettings(): SettingsModel {
     applyTheme(resolvedTheme, accent);
   }, [resolvedTheme, accent]);
 
-  const setTheme = useCallback(async (next: Theme | null) => {
+  const setTheme = useCallback(async (next: Theme | null): Promise<boolean> => {
     touchedTheme.current = true;
     setThemeState(next);
     writeStorage(THEME_STORAGE_KEY, next);
 
     try {
       await setSetting("theme", next);
+
+      return true;
     } catch {
       // Persistence failed; the session keeps the new preference.
+      return false;
     }
   }, []);
 
-  const setAccent = useCallback(async (next: Accent) => {
+  const setAccent = useCallback(async (next: Accent): Promise<boolean> => {
     touchedAccent.current = true;
     setAccentState(next);
     writeStorage(ACCENT_STORAGE_KEY, next);
 
     try {
       await setSetting("accent", next);
+
+      return true;
     } catch {
       // Persistence failed; the session keeps the new preference.
+      return false;
     }
   }, []);
 

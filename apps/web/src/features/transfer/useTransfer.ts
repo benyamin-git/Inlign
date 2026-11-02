@@ -25,8 +25,10 @@ export type TransferDeps = {
   getNotebooks: () => Notebook[];
   getSettings: () => Settings;
   getLines: (notebookId: string) => Line[] | undefined;
-  setTheme: (theme: Theme | null) => Promise<void>;
-  setAccent: (accent: Accent) => Promise<void>;
+  setTheme: (theme: Theme | null) => Promise<boolean>;
+  setAccent: (accent: Accent) => Promise<boolean>;
+  /** Drops the open editor's debounced write before storage is replaced. */
+  cancelPendingWrites: () => void;
 };
 
 export type TransferModel = {
@@ -59,6 +61,7 @@ export function useTransfer({
   getLines,
   setTheme,
   setAccent,
+  cancelPendingWrites,
 }: TransferDeps): TransferModel {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backupInputRef = useRef<HTMLInputElement>(null);
@@ -164,6 +167,9 @@ export function useTransfer({
         return;
       }
 
+      // Cancel before any await so the debounced write cannot land between the
+      // replace and the editor's revision reload (or its unmount flush).
+      cancelPendingWrites();
       setBusy(true);
       setError(null);
 
@@ -175,10 +181,14 @@ export function useTransfer({
           await replaceAll(backup.notebooks);
           setPendingBackup(null);
 
-          try {
-            await setTheme(backup.settings.theme);
-            await setAccent(backup.settings.accent);
-          } catch {
+          const [themeSaved, accentSaved] = await Promise.allSettled([
+            setTheme(backup.settings.theme),
+            setAccent(backup.settings.accent),
+          ]);
+          const saved = (result: PromiseSettledResult<boolean>): boolean =>
+            result.status === "fulfilled" && result.value;
+
+          if (!saved(themeSaved) || !saved(accentSaved)) {
             setError("Notebooks were restored, but the theme and accent could not be saved.");
           }
         } else {
@@ -197,7 +207,7 @@ export function useTransfer({
         setBusy(false);
       }
     },
-    [pendingBackup, replaceAll, currentNotebooks, setTheme, setAccent],
+    [pendingBackup, replaceAll, currentNotebooks, setTheme, setAccent, cancelPendingWrites],
   );
 
   return {

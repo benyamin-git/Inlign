@@ -117,7 +117,7 @@ export function ImportDialog({
             This removes every current notebook and restores the {notebookCount} {notebookLabel}{" "}
             from the backup, plus its theme and accent.
           </p>
-          <p>A safety backup of your current data was downloaded first.</p>
+          <p>The app creates a safety backup of your current data before the restore.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">

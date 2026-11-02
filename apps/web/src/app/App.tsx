@@ -32,6 +32,15 @@ export default function App() {
   // The sidebar list is not refreshed on text edits, so keep the editor's
   // latest lines here for exports and restores without re-rendering the cards.
   const editorLinesRef = useRef(new Map<string, Line[]>());
+  // The open editor registers its autosave cancel here; a restore calls it
+  // before touching storage so a pending text write cannot undo the import.
+  const cancelPendingWritesRef = useRef<(() => void) | null>(null);
+  const registerCancelPendingWrites = useCallback((cancel: (() => void) | null) => {
+    cancelPendingWritesRef.current = cancel;
+  }, []);
+  const cancelPendingWrites = useCallback(() => {
+    cancelPendingWritesRef.current?.();
+  }, []);
   const getNotebooks = useCallback(() => notebooks, [notebooks]);
   const getLines = useCallback((id: string) => editorLinesRef.current.get(id), []);
   const getSettings = useCallback(
@@ -53,6 +62,7 @@ export default function App() {
     getLines,
     setTheme: settings.setTheme,
     setAccent: settings.setAccent,
+    cancelPendingWrites,
   });
   const { exportNotebook: downloadNotebook } = transfer;
 
@@ -111,6 +121,7 @@ export default function App() {
             onLinesChange={(lines) => {
               editorLinesRef.current.set(active.id, lines);
             }}
+            registerCancelPendingWrites={registerCancelPendingWrites}
           />
         ) : (
           <section className="mx-auto flex w-full max-w-[72ch] flex-col gap-1 p-6">

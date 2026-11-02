@@ -11,9 +11,19 @@ export type NotebookEditorProps = {
   revision?: number;
   /** Lets the app export the in-memory lines before autosave catches up. */
   onLinesChange?: ((lines: Line[]) => void) | undefined;
+  /**
+   * Registers a cancel for the active editor's pending autosave so a restore
+   * can drop it before replacing storage. Receives null on unmount.
+   */
+  registerCancelPendingWrites?: ((cancel: (() => void) | null) => void) | undefined;
 };
 
-export function NotebookEditor({ notebook, revision = 0, onLinesChange }: NotebookEditorProps) {
+export function NotebookEditor({
+  notebook,
+  revision = 0,
+  onLinesChange,
+  registerCancelPendingWrites,
+}: NotebookEditorProps) {
   const {
     lines,
     focus,
@@ -24,6 +34,7 @@ export function NotebookEditor({ notebook, revision = 0, onLinesChange }: Notebo
     onNavigate,
     onPaste,
     onReorder,
+    cancelPendingWrites,
   } = useNotebookEditor(notebook, revision);
 
   const handleAction = useCallback(
@@ -54,6 +65,14 @@ export function NotebookEditor({ notebook, revision = 0, onLinesChange }: Notebo
   useEffect(() => {
     onLinesChange?.(lines);
   }, [lines, onLinesChange]);
+
+  useEffect(() => {
+    registerCancelPendingWrites?.(cancelPendingWrites);
+
+    return () => {
+      registerCancelPendingWrites?.(null);
+    };
+  }, [cancelPendingWrites, registerCancelPendingWrites]);
 
   return <LineCardList lines={lines} focus={focus} onAction={handleAction} onReorder={onReorder} />;
 }
