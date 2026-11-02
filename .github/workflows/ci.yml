@@ -69,6 +69,11 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
+      - name: Check generated accent tokens
+        run: |
+          pnpm generate:accents
+          git diff --exit-code -- apps/web/src/theme/accents.css
+
       - name: Unit tests
         run: pnpm test
 
