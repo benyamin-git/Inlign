@@ -57,6 +57,32 @@ test("creates a notebook at the top of the unpinned section", async () => {
   expect(notebooks.map((notebook) => notebook.id)).toEqual([second.id, first.id]);
 });
 
+test("creates a notebook with the provided lines in one write", async () => {
+  const existing = await createNotebook("Existing");
+  const lines = [
+    { id: crypto.randomUUID(), text: "first" },
+    { id: crypto.randomUUID(), text: "" },
+    { id: crypto.randomUUID(), text: "third" },
+  ];
+  const notebook = await createNotebook("  Imported  ", lines);
+
+  expect(notebook.title).toBe("Imported");
+  expect(notebook.lines).toEqual(lines);
+  expect(notebook.lines).not.toBe(lines);
+  expect(notebook.createdAt).toBe(notebook.updatedAt);
+  expect(notebook.sortOrder).toBeLessThan(existing.sortOrder);
+
+  await expect(getNotebook(notebook.id)).resolves.toEqual(notebook);
+});
+
+test("rejects an empty lines array when creating and writes nothing", async () => {
+  await expect(createNotebook("Empty", [])).rejects.toThrow(
+    "A notebook must have at least one line",
+  );
+
+  await expect(listNotebooks()).resolves.toEqual([]);
+});
+
 test("lists pinned notebooks first, then by sortOrder, updatedAt and id", async () => {
   const a = await createNotebook("a");
   const b = await createNotebook("b");

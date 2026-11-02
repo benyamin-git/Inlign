@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { Notebook } from "../../data/models.ts";
+import type { Line, Notebook } from "../../data/models.ts";
 import {
   createNotebook,
   deleteNotebook,
@@ -15,7 +15,7 @@ export type UseNotebooks = {
   notebooks: Notebook[];
   activeId: string | null;
   select: (id: string | null) => void;
-  create: () => Promise<Notebook>;
+  create: (title?: string, lines?: Line[]) => Promise<Notebook>;
   rename: (id: string, title: string) => Promise<void>;
   setPinned: (id: string, pinned: boolean) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -72,14 +72,17 @@ export function useNotebooks(): UseNotebooks {
     setActiveId(id);
   }, []);
 
-  const create = useCallback(async (): Promise<Notebook> => {
-    const notebook = await createNotebook();
+  const create = useCallback(
+    async (title?: string, lines?: Line[]): Promise<Notebook> => {
+      const notebook = await createNotebook(title, lines);
 
-    await refresh();
-    setActiveId(notebook.id);
+      await refresh();
+      setActiveId(notebook.id);
 
-    return notebook;
-  }, [refresh]);
+      return notebook;
+    },
+    [refresh],
+  );
 
   const rename = useCallback(
     async (id: string, title: string): Promise<void> => {

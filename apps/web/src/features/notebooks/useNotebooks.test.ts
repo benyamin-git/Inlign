@@ -53,6 +53,37 @@ test("creates a notebook, selects it and puts it on top of the unpinned list", a
   await expect(listNotebooks()).resolves.toMatchObject([{ id: createdId }, { id: existing.id }]);
 });
 
+test("creates a notebook with title and lines, selects it and puts it on top", async () => {
+  const existing = await createNotebook("Existing");
+  const lines = [
+    { id: crypto.randomUUID(), text: "alpha" },
+    { id: crypto.randomUUID(), text: "beta" },
+  ];
+  const { result } = renderHook(() => useNotebooks());
+
+  await waitFor(() => {
+    expect(result.current.notebooks).toHaveLength(1);
+  });
+
+  let createdId = "";
+  await act(async () => {
+    const created = await result.current.create("Imported", lines);
+    createdId = created.id;
+  });
+
+  expect(result.current.activeId).toBe(createdId);
+  expect(result.current.notebooks[0]).toMatchObject({
+    id: createdId,
+    title: "Imported",
+    lines,
+  });
+  expect(result.current.notebooks.map((notebook) => notebook.id)).toEqual([createdId, existing.id]);
+  await expect(listNotebooks()).resolves.toMatchObject([
+    { id: createdId, title: "Imported", lines },
+    { id: existing.id },
+  ]);
+});
+
 test("renames through the repository, normalizing blank titles", async () => {
   const notebook = await createNotebook("Before");
   const { result } = renderHook(() => useNotebooks());

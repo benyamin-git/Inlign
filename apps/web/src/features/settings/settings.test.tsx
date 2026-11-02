@@ -51,9 +51,8 @@ test("opens from the top bar, shows both sections, and closes with Done or the s
 
   expect(within(dialog).getByText("Appearance")).toBeInTheDocument();
   expect(within(dialog).getByText("Data")).toBeInTheDocument();
-  expect(
-    within(dialog).getByText("Import and export actions will appear here."),
-  ).toBeInTheDocument();
+  expect(within(dialog).getByRole("button", { name: "Export active" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Import .inlign" })).toBeEnabled();
   expect(within(dialog).getByRole("group", { name: "Theme" })).toBeInTheDocument();
   expect(within(dialog).getByRole("group", { name: "Accent" })).toBeInTheDocument();
 

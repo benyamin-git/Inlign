@@ -7,8 +7,9 @@ values in place.
 > Early development. The foundation milestone and the first card editor are
 > complete: the workspace, Rust/WASM engine pipeline, worker, build, tests, an
 > installable PWA, one-line card editing, card reordering, sidebar notebook
-> ordering and pinning by pointer, touch and keyboard, autosave, and the
-> Light/Dark/OLED theme and six-accent settings sheet all work. Math is still
+> ordering and pinning by pointer, touch and keyboard, autosave, the
+> Light/Dark/OLED theme and six-accent settings sheet, and `.inlign` notebook
+> export and import all work. Math is still
 > to come. The previous
 > implementation is archived at
 > [benyamin-git/Inlign-legacy](https://github.com/benyamin-git/Inlign-legacy).
@@ -33,6 +34,10 @@ values in place.
 - The settings sheet switches between Light, Dark and OLED and all six accents.
   The choice is stored in IndexedDB, mirrored to localStorage so the first
   paint never flashes the wrong theme, and follows the OS until you pick one.
+- The notebook menu exports a notebook as a slugified `.inlign` plain-text file
+  with one line per row and no trailing newline. Settings → Data imports an
+  `.inlign` file as a new notebook titled from its filename, and can export the
+  active notebook.
 
 ## Why it exists
 
@@ -161,8 +166,8 @@ preview server to test install and offline behavior.
 ## Data and privacy
 
 There are no accounts, no telemetry and no requests to third-party services
-after the page loads. Notebooks are stored in IndexedDB in the browser; `.inlign`
-and JSON files will be used for export and backup.
+after the page loads. Notebooks are stored in IndexedDB in the browser;
+`.inlign` files export a single notebook, and JSON backup is planned.
 
 ## CI
 
@@ -188,8 +193,9 @@ pnpm build
 ## Limitations
 
 - No math engine yet: no parsing, solving, checking, results or conflicts.
-- No import/export or backup yet; the settings Data section is a placeholder.
+- No JSON backup or restore yet.
 - No structural undo; only the textarea's native undo exists.
-- iOS may evict IndexedDB storage, so backups will matter once export lands.
+- iOS may evict IndexedDB storage, so keep `.inlign` exports of anything
+  important.
 
 MIT licensed; see `LICENSE`.

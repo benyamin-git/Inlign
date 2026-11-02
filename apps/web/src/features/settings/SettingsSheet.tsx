@@ -1,5 +1,8 @@
+import type { Notebook } from "../../data/models.ts";
 import { Button } from "../../ui/Button.tsx";
 import { Dialog } from "../../ui/Dialog.tsx";
+import { TransferActions } from "../transfer/TransferActions.tsx";
+import type { TransferModel } from "../transfer/useTransfer.ts";
 import { AccentPicker } from "./AccentPicker.tsx";
 import { ThemePicker } from "./ThemePicker.tsx";
 import type { SettingsModel } from "./useSettings.ts";
@@ -7,10 +10,20 @@ import type { SettingsModel } from "./useSettings.ts";
 export type SettingsSheetProps = {
   open: boolean;
   settings: SettingsModel;
+  active: Notebook | null;
+  onExport: (notebook: Notebook) => void;
+  transfer: TransferModel;
   onClose: () => void;
 };
 
-export function SettingsSheet({ open, settings, onClose }: SettingsSheetProps) {
+export function SettingsSheet({
+  open,
+  settings,
+  active,
+  onExport,
+  transfer,
+  onClose,
+}: SettingsSheetProps) {
   return (
     <Dialog
       open={open}
@@ -40,9 +53,7 @@ export function SettingsSheet({ open, settings, onClose }: SettingsSheetProps) {
         </section>
         <section>
           <h3 className="text-sm font-semibold text-on-surface">Data</h3>
-          <p className="mt-2 text-sm text-on-surface-variant">
-            Import and export actions will appear here.
-          </p>
+          <TransferActions active={active} onExport={onExport} transfer={transfer} />
         </section>
       </div>
     </Dialog>

@@ -30,17 +30,22 @@ function isPinned(record: NotebookRecord): boolean {
   return record.pinned === 1;
 }
 
-export async function createNotebook(title?: string): Promise<Notebook> {
+export async function createNotebook(title?: string, lines?: Line[]): Promise<Notebook> {
+  if (lines?.length === 0) {
+    throw new Error("A notebook must have at least one line");
+  }
+
   return db.transaction("rw", db.notebooks, async () => {
     const unpinned = await db.notebooks.where("pinned").equals(0).toArray();
     const sortOrder =
       unpinned.length === 0 ? 0 : Math.min(...unpinned.map((notebook) => notebook.sortOrder)) - 1;
     const now = Date.now();
-    const line: Line = { id: crypto.randomUUID(), text: "" };
     const notebook: Notebook = {
       id: crypto.randomUUID(),
       title: normalizeTitle(title),
-      lines: [line],
+      lines: lines
+        ? lines.map((line) => ({ id: line.id, text: line.text }))
+        : [{ id: crypto.randomUUID(), text: "" }],
       pinned: false,
       sortOrder,
       createdAt: now,

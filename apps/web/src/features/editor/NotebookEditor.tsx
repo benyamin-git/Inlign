@@ -1,15 +1,17 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
-import type { Notebook } from "../../data/models.ts";
+import type { Line, Notebook } from "../../data/models.ts";
 import { LineCardList } from "./LineCardList.tsx";
 import type { LineAction } from "./lineOps.ts";
 import { useNotebookEditor } from "./useNotebookEditor.ts";
 
 export type NotebookEditorProps = {
   notebook: Notebook;
+  /** Lets the app export the in-memory lines before autosave catches up. */
+  onLinesChange?: ((lines: Line[]) => void) | undefined;
 };
 
-export function NotebookEditor({ notebook }: NotebookEditorProps) {
+export function NotebookEditor({ notebook, onLinesChange }: NotebookEditorProps) {
   const {
     lines,
     focus,
@@ -46,6 +48,10 @@ export function NotebookEditor({ notebook }: NotebookEditorProps) {
     },
     [onChange, onSplit, onMergePrevious, onMergeNext, onNavigate, onPaste],
   );
+
+  useEffect(() => {
+    onLinesChange?.(lines);
+  }, [lines, onLinesChange]);
 
   return <LineCardList lines={lines} focus={focus} onAction={handleAction} onReorder={onReorder} />;
 }
