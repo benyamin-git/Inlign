@@ -23,9 +23,11 @@ export function TransferActions({ active, onExport, transfer }: TransferActionsP
 
   return (
     <div className="mt-3 flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
         <Button
-          variant="tonal"
+          variant="outlined"
+          compact
+          className="w-full"
           disabled={!active}
           onClick={() => {
             if (active) {
@@ -35,15 +37,31 @@ export function TransferActions({ active, onExport, transfer }: TransferActionsP
         >
           Export active
         </Button>
-        <Button variant="tonal" disabled={busy} onClick={chooseImportFile}>
+        <Button
+          variant="outlined"
+          compact
+          className="w-full"
+          disabled={busy}
+          onClick={chooseImportFile}
+        >
           Import .inlign
         </Button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="tonal" disabled={busy} onClick={exportBackup}>
+        <Button
+          variant="outlined"
+          compact
+          className="w-full"
+          disabled={busy}
+          onClick={exportBackup}
+        >
           Export backup
         </Button>
-        <Button variant="tonal" disabled={busy} onClick={chooseBackupFile}>
+        <Button
+          variant="outlined"
+          compact
+          className="w-full"
+          disabled={busy}
+          onClick={chooseBackupFile}
+        >
           Import backup
         </Button>
       </div>

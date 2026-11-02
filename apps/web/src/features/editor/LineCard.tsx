@@ -102,7 +102,7 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className={`relative flex items-start gap-2 rounded-card border border-outline bg-surface-container px-3 py-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary md:py-2 ${
+      className={`relative flex items-center gap-2 rounded-card border border-outline bg-surface-container px-3 py-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary md:py-2 ${
         isDragging ? "z-10 border-primary bg-surface-container-high" : ""
       }`}
     >
@@ -113,9 +113,9 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
         type="button"
         aria-label={`Move line ${String(index + 1)}`}
         data-line-grip=""
-        className="mt-0.5 flex h-10 w-10 shrink-0 cursor-grab touch-none items-center justify-center rounded-button text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary pointer-coarse:h-12 pointer-coarse:w-12"
+        className="flex h-10 w-10 shrink-0 cursor-grab touch-none items-center justify-center rounded-button text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary pointer-coarse:h-12 pointer-coarse:w-12"
       >
-        <GripIcon className="h-4 w-4" />
+        <GripIcon className="h-6 w-6" />
       </button>
       <textarea
         ref={textareaRef}

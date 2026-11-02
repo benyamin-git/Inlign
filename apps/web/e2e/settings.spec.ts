@@ -185,6 +185,61 @@ test.describe("narrow portrait", () => {
   });
 });
 
+test.describe("narrow data grid", () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test("lays out the transfer actions as equal outlined cards", async ({ page }) => {
+    await page.goto("/");
+
+    const dialog = await openSettings(page);
+    const names = ["Export active", "Import .inlign", "Export backup", "Import backup"];
+    const boxes: { x: number; y: number; width: number; height: number }[] = [];
+
+    for (const name of names) {
+      const button = dialog.getByRole("button", { name, exact: true });
+
+      await expect(button).toBeVisible();
+      await expect(button).toHaveCSS("border-top-style", "solid");
+      await expect(button).toHaveCSS("border-top-width", "1px");
+
+      const fits = await button.evaluate((element) => {
+        const { scrollWidth, clientWidth } = element as unknown as {
+          scrollWidth: number;
+          clientWidth: number;
+        };
+
+        return scrollWidth <= clientWidth + 1;
+      });
+
+      expect(fits).toBe(true);
+
+      const box = await button.boundingBox();
+
+      if (!box) {
+        throw new Error(`${name} is not laid out`);
+      }
+
+      boxes.push(box);
+    }
+
+    const [active, importInlign, backup, importBackup] = boxes;
+
+    if (!active || !importInlign || !backup || !importBackup) {
+      throw new Error("The transfer grid is not laid out");
+    }
+
+    expect(Math.abs(active.y - importInlign.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(backup.y - importBackup.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(active.x - backup.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(importInlign.x - importBackup.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(active.width - importInlign.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(active.width - backup.width)).toBeLessThanOrEqual(1);
+    expect(backup.y).toBeGreaterThan(active.y);
+    expect(active.width).toBeGreaterThan(120);
+    expect(active.height).toBeGreaterThanOrEqual(48);
+  });
+});
+
 test.describe("short landscape", () => {
   test.use({ viewport: { width: 844, height: 390 } });
 

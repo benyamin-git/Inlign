@@ -34,3 +34,34 @@ test("types, splits, merges and reloads line cards", async ({ page }) => {
 
   await expect(page.getByRole("textbox", { name: "Line 1" })).toHaveValue("alphabeta");
 });
+
+test.describe("mobile card layout", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("centers the line text and drag grip on the card", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("main").getByRole("button", { name: "New notebook" }).click();
+
+    const text = page.getByRole("textbox", { name: "Line 1" });
+    const card = page.locator("li[data-line-id]");
+    const grip = page.locator("[data-line-grip]");
+
+    await text.fill("Centered");
+    await expect(text).toBeVisible();
+
+    const [cardBox, gripBox, textBox] = await Promise.all([
+      card.boundingBox(),
+      grip.boundingBox(),
+      text.boundingBox(),
+    ]);
+
+    if (!cardBox || !gripBox || !textBox) {
+      throw new Error("The line card is not laid out");
+    }
+
+    const center = (box: { y: number; height: number }) => box.y + box.height / 2;
+
+    expect(Math.abs(center(cardBox) - center(textBox))).toBeLessThanOrEqual(1);
+    expect(Math.abs(center(gripBox) - center(textBox))).toBeLessThanOrEqual(1);
+  });
+});
