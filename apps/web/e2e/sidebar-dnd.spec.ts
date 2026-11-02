@@ -36,26 +36,25 @@ async function sectionOrder(page: Page, section: "pinned" | "unpinned"): Promise
   );
 }
 
-// dnd-kit listens to pointer events, so move the real mouse rather than using
-// HTML5 drag helpers. The title button is the activator.
-async function pointerDrag(page: Page, sourceTitle: string, targetTitle: string): Promise<void> {
-  const sourceBox = await sidebar(page)
-    .getByRole("button", { name: sourceTitle, exact: true })
-    .boundingBox();
-  const targetBox = await sidebar(page)
-    .getByRole("button", { name: targetTitle, exact: true })
-    .boundingBox();
+async function titleCenter(page: Page, title: string): Promise<{ x: number; y: number }> {
+  const box = await sidebar(page).getByRole("button", { name: title, exact: true }).boundingBox();
 
-  if (!sourceBox || !targetBox) {
-    throw new Error("Notebook titles are not visible.");
+  if (!box) {
+    throw new Error(`Notebook title ${title} is not visible.`);
   }
 
-  const start = { x: sourceBox.x + sourceBox.width / 2, y: sourceBox.y + sourceBox.height / 2 };
-  const end = { x: targetBox.x + targetBox.width / 2, y: targetBox.y + targetBox.height / 2 };
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+// dnd-kit listens to mouse events, so move the real mouse rather than using
+// HTML5 drag helpers. The title button is the activator.
+async function pointerDrag(page: Page, sourceTitle: string, targetTitle: string): Promise<void> {
+  const start = await titleCenter(page, sourceTitle);
+  const end = await titleCenter(page, targetTitle);
 
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  // Cross the 4 px activation distance before travelling to the target.
+  // Cross the 8 px activation distance before travelling to the target.
   await page.mouse.move(start.x, start.y + 12, { steps: 4 });
   await page.mouse.move(end.x, end.y, { steps: 10 });
   await page.waitForTimeout(100);
@@ -71,6 +70,16 @@ test("reorders within a section with pointer and keyboard, pins from the menu, a
   await createNotebook(page, "Gamma");
 
   // New notebooks go to the top of the unpinned section.
+  await expect.poll(() => titleOrder(page)).toEqual(["Gamma", "Beta", "Alpha"]);
+
+  // A plain click or Enter selects a notebook without reordering it.
+  const activeTitle = page.getByTestId("active-title");
+
+  await sidebar(page).getByRole("button", { name: "Alpha", exact: true }).click();
+  await expect(activeTitle).toHaveText("Alpha");
+  await sidebar(page).getByRole("button", { name: "Beta", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(activeTitle).toHaveText("Beta");
   await expect.poll(() => titleOrder(page)).toEqual(["Gamma", "Beta", "Alpha"]);
 
   // Pointer drag: Gamma to the bottom.
@@ -115,12 +124,58 @@ test("reorders within a section with pointer and keyboard, pins from the menu, a
   await expect.poll(() => titleOrder(page)).toEqual(["Alpha", "Beta", "Gamma"]);
   await expect(sidebar(page).getByRole("button", { name: "Alpha", exact: true })).toBeFocused();
 
-  // Both orders and the pin survive a reload.
-  await page.waitForTimeout(300);
+  // Both orders and the pin survive a reload; the assertions above already
+  // wait for the persisted refresh.
   await page.reload();
 
   await expect(sidebar(page).getByRole("heading", { name: "Pinned", exact: true })).toBeVisible();
   await expect.poll(() => sectionOrder(page, "pinned")).toEqual(["Alpha"]);
   await expect.poll(() => sectionOrder(page, "unpinned")).toEqual(["Beta", "Gamma"]);
   await expect.poll(() => titleOrder(page)).toEqual(["Alpha", "Beta", "Gamma"]);
+});
+
+test.describe("touch drag", () => {
+  test.use({ hasTouch: true });
+
+  test("reorders after a hold and persists", async ({ page, context }) => {
+    await page.goto("/");
+    await createNotebook(page, "One");
+    await createNotebook(page, "Two");
+    await createNotebook(page, "Three");
+
+    await expect.poll(() => titleOrder(page)).toEqual(["Three", "Two", "One"]);
+
+    const session = await context.newCDPSession(page);
+    const start = await titleCenter(page, "Three");
+    const end = await titleCenter(page, "One");
+    const point = (x: number, y: number) => [{ x, y, id: 1, radiusX: 2, radiusY: 2, force: 1 }];
+
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: point(start.x, start.y),
+    });
+    // Hold still past TouchSensor's 200 ms delay. This is the behaviour the
+    // mouse sensor split protects: a touch gesture must stay with TouchSensor.
+    await page.waitForTimeout(300);
+
+    // Move in several steps so dnd-kit sees a real drag, not a jump.
+    for (let step = 1; step <= 10; step += 1) {
+      const x = start.x + ((end.x - start.x) * step) / 10;
+      const y = start.y + ((end.y - start.y) * step) / 10;
+
+      await session.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: point(x, y),
+      });
+      await page.waitForTimeout(16);
+    }
+
+    await page.waitForTimeout(100);
+    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+
+    await expect.poll(() => titleOrder(page)).toEqual(["Two", "One", "Three"]);
+
+    await page.reload();
+    await expect.poll(() => titleOrder(page)).toEqual(["Two", "One", "Three"]);
+  });
 });

@@ -3,7 +3,7 @@ import {
   DndContext,
   KeyboardCode,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
@@ -16,7 +16,14 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { useCallback, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
 import type { Notebook } from "../../data/models.ts";
 import { moveSectionIds, sectionItems, type NotebookSectionItems } from "./notebookSection.ts";
@@ -30,17 +37,25 @@ const SCREEN_READER_INSTRUCTIONS: ScreenReaderInstructions = {
 export type NotebookDndProviderProps = {
   notebooks: Notebook[];
   onReorder: (section: NotebookSection, orderedIds: string[]) => Promise<void>;
+  /** Sidebar subtree used to find the dropped item when restoring focus. */
+  focusRootRef: RefObject<HTMLElement | null>;
   children: ReactNode;
 };
 
 /**
- * Sidebar drag context. Sensors mirror the card list: a pointer drag needs a
- * little movement, a touch drag needs a hold, and the keyboard starts and ends
- * a drag with Space only so Enter still activates the notebook title.
+ * Sidebar drag context. Mouse and touch are split so touch `pointerdown` is
+ * never claimed by the mouse sensor: a mouse drag needs a little movement, a
+ * touch drag needs a hold, and the keyboard starts and ends a drag with Space
+ * only so Enter still activates the notebook title.
  */
-export function NotebookDndProvider({ notebooks, onReorder, children }: NotebookDndProviderProps) {
+export function NotebookDndProvider({
+  notebooks,
+  onReorder,
+  focusRootRef,
+  children,
+}: NotebookDndProviderProps) {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -145,10 +160,12 @@ export function NotebookDndProvider({ notebooks, onReorder, children }: Notebook
 
     pendingFocusId.current = null;
 
-    Array.from(document.querySelectorAll<HTMLElement>("[data-notebook-title-id]"))
+    Array.from(
+      focusRootRef.current?.querySelectorAll<HTMLElement>("[data-notebook-title-id]") ?? [],
+    )
       .find((element) => element.dataset.notebookTitleId === id)
       ?.focus();
-  }, [orderSignature]);
+  }, [focusRootRef, orderSignature]);
 
   return (
     <DndContext

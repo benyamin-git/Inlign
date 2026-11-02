@@ -158,7 +158,7 @@ export function NotebookSidebar({
         {notebooks.length === 0 ? (
           <p className="px-2 py-3 text-sm text-on-surface-variant">No notebooks yet.</p>
         ) : (
-          <NotebookDndProvider notebooks={notebooks} onReorder={onReorder}>
+          <NotebookDndProvider notebooks={notebooks} onReorder={onReorder} focusRootRef={rootRef}>
             {renderSection("pinned", "Pinned", pinned)}
             {renderSection("unpinned", pinned.length > 0 ? "Unpinned" : null, unpinned)}
           </NotebookDndProvider>
