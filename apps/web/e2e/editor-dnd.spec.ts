@@ -50,7 +50,9 @@ test("reorders cards with the pointer and the keyboard, and persists it", async 
 
   // Keyboard reorder: pick up alpha, move one position up, drop it. The live
   // region proves the moved-over state before the drop key is sent.
-  const liveRegion = page.locator("[aria-live]").first();
+  // The sidebar has its own drag context and live region; keep this scoped to
+  // the editor.
+  const liveRegion = page.getByRole("main").locator("[aria-live]").first();
 
   await page.keyboard.press("Space");
   // dnd-kit attaches the arrow-key listener in a timer after pick-up, so wait

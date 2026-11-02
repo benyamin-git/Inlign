@@ -1,3 +1,5 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useId, useRef, useState } from "react";
 
 import type { Notebook } from "../../data/models.ts";
@@ -39,6 +41,21 @@ export function NotebookItem({
   const settledRef = useRef(true);
   const restoreFocusRef = useRef(false);
   const pinnedDescriptionId = useId();
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: notebook.id });
+  // Keep dnd-kit's instructions for screen readers and the Pinned note on the
+  // same title, rather than one replacing the other.
+  const describedBy =
+    [attributes["aria-describedby"], notebook.pinned ? pinnedDescriptionId : undefined]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   useEffect(() => {
     if (editing) {
@@ -117,7 +134,14 @@ export function NotebookItem({
   ];
 
   return (
-    <li>
+    <li
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={isDragging ? "relative z-10" : undefined}
+    >
       <div
         className={cx(
           "flex items-center gap-1 rounded-chip",
@@ -160,16 +184,22 @@ export function NotebookItem({
           </div>
         ) : (
           <button
-            ref={titleRef}
+            {...attributes}
+            {...listeners}
+            ref={(node) => {
+              titleRef.current = node;
+              setActivatorNodeRef(node);
+            }}
             type="button"
             aria-label={notebook.title}
             aria-current={active ? "page" : undefined}
-            aria-describedby={notebook.pinned ? pinnedDescriptionId : undefined}
+            aria-describedby={describedBy}
             data-notebook-title-id={notebook.id}
             onClick={onSelect}
             className={cx(
               "flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-chip px-3 text-start text-sm md:min-h-10",
               active ? "text-on-primary-container" : "text-on-surface",
+              isDragging ? "cursor-grabbing" : "cursor-grab",
             )}
           >
             <span className="truncate">{notebook.title}</span>

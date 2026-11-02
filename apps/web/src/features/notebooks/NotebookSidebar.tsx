@@ -5,6 +5,7 @@ import type { NotebookSection } from "./useNotebooks.ts";
 import { IconButton } from "../../ui/IconButton.tsx";
 import { CloseIcon, PlusIcon } from "../../ui/icons.tsx";
 import { NotebookItem } from "./NotebookItem.tsx";
+import { NotebookDndProvider, NotebookSortableSection } from "./useNotebookDnd.tsx";
 
 export type NotebookSidebarProps = {
   notebooks: Notebook[];
@@ -14,7 +15,6 @@ export type NotebookSidebarProps = {
   onRename: (id: string, title: string) => Promise<void>;
   onSetPinned: (id: string, pinned: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  /** Reserved for the section drag milestone. */
   onReorder: (section: NotebookSection, orderedIds: string[]) => Promise<void>;
   onNavigate?: (() => void) | undefined;
   onClose?: (() => void) | undefined;
@@ -30,6 +30,7 @@ export function NotebookSidebar({
   onRename,
   onSetPinned,
   onDelete,
+  onReorder,
   onNavigate,
   onClose,
 }: NotebookSidebarProps) {
@@ -105,7 +106,7 @@ export function NotebookSidebar({
     onNavigate?.();
   }
 
-  function renderSection(title: string | null, items: Notebook[]) {
+  function renderSection(section: NotebookSection, title: string | null, items: Notebook[]) {
     if (items.length === 0) {
       return null;
     }
@@ -117,21 +118,23 @@ export function NotebookSidebar({
             {title}
           </h3>
         ) : null}
-        <ul className="flex flex-col gap-0.5">
-          {items.map((notebook) => (
-            <NotebookItem
-              key={notebook.id}
-              notebook={notebook}
-              active={notebook.id === activeId}
-              onSelect={() => {
-                handleSelect(notebook.id);
-              }}
-              onRename={(nextTitle) => onRename(notebook.id, nextTitle)}
-              onSetPinned={(nextPinned) => handleSetPinned(notebook.id, nextPinned)}
-              onDelete={() => handleDelete(notebook.id)}
-            />
-          ))}
-        </ul>
+        <NotebookSortableSection items={items.map((notebook) => notebook.id)}>
+          <ul data-notebook-section={section} className="flex flex-col gap-0.5">
+            {items.map((notebook) => (
+              <NotebookItem
+                key={notebook.id}
+                notebook={notebook}
+                active={notebook.id === activeId}
+                onSelect={() => {
+                  handleSelect(notebook.id);
+                }}
+                onRename={(nextTitle) => onRename(notebook.id, nextTitle)}
+                onSetPinned={(nextPinned) => handleSetPinned(notebook.id, nextPinned)}
+                onDelete={() => handleDelete(notebook.id)}
+              />
+            ))}
+          </ul>
+        </NotebookSortableSection>
       </section>
     );
   }
@@ -155,10 +158,10 @@ export function NotebookSidebar({
         {notebooks.length === 0 ? (
           <p className="px-2 py-3 text-sm text-on-surface-variant">No notebooks yet.</p>
         ) : (
-          <>
-            {renderSection("Pinned", pinned)}
-            {renderSection(pinned.length > 0 ? "Unpinned" : null, unpinned)}
-          </>
+          <NotebookDndProvider notebooks={notebooks} onReorder={onReorder}>
+            {renderSection("pinned", "Pinned", pinned)}
+            {renderSection("unpinned", pinned.length > 0 ? "Unpinned" : null, unpinned)}
+          </NotebookDndProvider>
         )}
       </nav>
     </div>

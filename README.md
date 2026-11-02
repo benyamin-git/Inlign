@@ -6,8 +6,9 @@ values in place.
 
 > Early development. The foundation milestone and the first card editor are
 > complete: the workspace, Rust/WASM engine pipeline, worker, build, tests, an
-> installable PWA, one-line card editing and card reordering by pointer, touch
-> and keyboard all work. Autosave and math are still to come. The previous
+> installable PWA, one-line card editing, card reordering, and sidebar notebook
+> ordering and pinning by pointer, touch and keyboard all work. Autosave and
+> math are still to come. The previous
 > implementation is archived at
 > [benyamin-git/Inlign-legacy](https://github.com/benyamin-git/Inlign-legacy).
 
@@ -20,8 +21,10 @@ values in place.
 - The production build is an installable PWA with a precached app shell, WASM
   binary and icons.
 - The page now shows the real app shell: a collapsible notebook sidebar, an
-  empty state, and create, inline rename, pin and delete flows backed by
-  IndexedDB. The editor renders one logical line per card: Enter splits,
+  empty state, and create, inline rename, pin, reorder and delete flows backed
+  by IndexedDB. Notebooks reorder within the pinned and unpinned sections by
+  pointer, touch or keyboard, and pinning moves a notebook to the top of its
+  new section. The editor renders one logical line per card: Enter splits,
   Backspace and Delete merge, pasted newlines become separate cards, and cards
   can be dragged by their grip or moved with the keyboard.
 
