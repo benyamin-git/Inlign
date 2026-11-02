@@ -61,6 +61,28 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
     };
   }, [grow]);
 
+  // A late webfont swap changes the text metrics after the initial measure.
+  useEffect(() => {
+    const fonts = (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts;
+    const ready = fonts?.ready;
+
+    if (ready === undefined) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void ready.then(() => {
+      if (!cancelled) {
+        grow();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [grow]);
+
   return (
     <li className="flex items-start gap-2 rounded-card border border-outline bg-surface-container px-3 py-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary md:py-2">
       <span

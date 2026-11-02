@@ -22,11 +22,11 @@ export type UseNotebookEditor = {
   lines: Line[];
   focus: EditorFocus;
   onChange: (lineId: string, text: string) => void;
-  onSplit: (lineId: string, offset: number) => void;
+  onSplit: (lineId: string, offset: number, end?: number) => void;
   onMergePrevious: (lineId: string) => void;
   onMergeNext: (lineId: string) => void;
   onNavigate: (lineId: string, direction: -1 | 1, offset: number) => void;
-  onPaste: (lineId: string, offset: number, text: string) => void;
+  onPaste: (lineId: string, offset: number, text: string, end?: number) => void;
 };
 
 /**
@@ -109,8 +109,8 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
   );
 
   const onSplit = useCallback(
-    (lineId: string, offset: number) => {
-      applyResult(splitLine(stateRef.current.lines, lineId, offset));
+    (lineId: string, offset: number, end?: number) => {
+      applyResult(splitLine(stateRef.current.lines, lineId, offset, end));
     },
     [applyResult],
   );
@@ -130,8 +130,8 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
   );
 
   const onPaste = useCallback(
-    (lineId: string, offset: number, text: string) => {
-      applyResult(insertText(stateRef.current.lines, lineId, offset, text));
+    (lineId: string, offset: number, text: string, end?: number) => {
+      applyResult(insertText(stateRef.current.lines, lineId, offset, text, end));
     },
     [applyResult],
   );

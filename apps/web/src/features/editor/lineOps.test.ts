@@ -36,6 +36,17 @@ test("clamps split offsets to the line text", () => {
   expect(textOf(splitLine(lines("abc"), "line-1", 99).lines)).toEqual(["abc", ""]);
 });
 
+test("splitting over a selection removes the selected text", () => {
+  const result = splitLine(lines("abcdef"), "line-1", 2, 4);
+
+  expect(textOf(result.lines)).toEqual(["ab", "ef"]);
+  expect(result.focus).toEqual({ lineId: result.lines[1]?.id, offset: 0 });
+
+  const reversed = splitLine(lines("abcdef"), "line-1", 4, 2);
+
+  expect(textOf(reversed.lines)).toEqual(["ab", "ef"]);
+});
+
 test("merges a line into the previous one and focuses the join", () => {
   const result = mergeWithPrevious(lines("alpha", "beta", "gamma"), "line-2");
 
@@ -96,6 +107,15 @@ test("pastes a trailing newline as a final empty card", () => {
 
   expect(textOf(result.lines)).toEqual(["abcX", ""]);
   expect(result.focus).toEqual({ lineId: result.lines[1]?.id, offset: 0 });
+});
+
+test("multiline paste over a selection replaces the range without duplicating it", () => {
+  const result = insertText(lines("abcdef"), "line-1", 1, "X\r\nY", 4);
+
+  expect(result.lines).toHaveLength(2);
+  expect(result.lines[0]).toMatchObject({ id: "line-1", text: "aX" });
+  expect(textOf(result.lines)).toEqual(["aX", "Yef"]);
+  expect(result.focus).toEqual({ lineId: result.lines[1]?.id, offset: 1 });
 });
 
 test("a single-line notebook can grow with a paste", () => {

@@ -6,11 +6,11 @@ import type { Line } from "../../data/models.ts";
  */
 export type LineAction =
   | { type: "change"; text: string }
-  | { type: "split"; offset: number }
+  | { type: "split"; offset: number; end?: number }
   | { type: "merge-previous" }
   | { type: "merge-next" }
   | { type: "navigate"; direction: -1 | 1; offset?: number }
-  | { type: "paste"; offset: number; text: string };
+  | { type: "paste"; offset: number; text: string; end?: number };
 
 export type LineOpResult = {
   lines: Line[];
@@ -29,7 +29,19 @@ function clampOffset(text: string, offset: number): number {
   return Math.max(0, Math.min(offset, text.length));
 }
 
-export function splitLine(lines: Line[], lineId: string, offset: number): LineOpResult {
+function clampRange(text: string, offset: number, end: number): { start: number; end: number } {
+  const first = clampOffset(text, offset);
+  const second = clampOffset(text, end);
+
+  return first <= second ? { start: first, end: second } : { start: second, end: first };
+}
+
+export function splitLine(
+  lines: Line[],
+  lineId: string,
+  offset: number,
+  end = offset,
+): LineOpResult {
   const index = lines.findIndex((line) => line.id === lineId);
   const safeLines = ensureLines(lines);
   const line = index >= 0 ? safeLines[index] : undefined;
@@ -38,10 +50,10 @@ export function splitLine(lines: Line[], lineId: string, offset: number): LineOp
     return { lines: safeLines, focus: { lineId, offset } };
   }
 
-  const at = clampOffset(line.text, offset);
-  const nextLine: Line = { id: crypto.randomUUID(), text: line.text.slice(at) };
+  const range = clampRange(line.text, offset, end);
+  const nextLine: Line = { id: crypto.randomUUID(), text: line.text.slice(range.end) };
   const nextLines = safeLines.map((current, currentIndex) =>
-    currentIndex === index ? { ...current, text: current.text.slice(0, at) } : current,
+    currentIndex === index ? { ...current, text: current.text.slice(0, range.start) } : current,
   );
 
   nextLines.splice(index + 1, 0, nextLine);
@@ -84,6 +96,7 @@ export function insertText(
   lineId: string,
   offset: number,
   text: string,
+  end = offset,
 ): LineOpResult {
   const index = lines.findIndex((line) => line.id === lineId);
   const safeLines = ensureLines(lines);
@@ -93,9 +106,9 @@ export function insertText(
     return { lines: safeLines, focus: { lineId, offset } };
   }
 
-  const at = clampOffset(line.text, offset);
-  const before = line.text.slice(0, at);
-  const after = line.text.slice(at);
+  const range = clampRange(line.text, offset, end);
+  const before = line.text.slice(0, range.start);
+  const after = line.text.slice(range.end);
   const segments = text.replace(/\r\n?/g, "\n").split("\n");
   const firstSegment = segments[0] ?? "";
   const lastSegment = segments[segments.length - 1] ?? "";

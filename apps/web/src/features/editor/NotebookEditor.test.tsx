@@ -1,10 +1,11 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { db } from "../../data/db.ts";
 import type { Notebook } from "../../data/models.ts";
 import { createNotebook, getNotebook, updateNotebook } from "../../data/notebooks.ts";
+import * as notebookRepository from "../../data/notebooks.ts";
 import { NotebookEditor } from "./NotebookEditor.tsx";
 
 function getLine(name: string): HTMLTextAreaElement {
@@ -30,6 +31,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   cleanup();
 });
 
@@ -88,6 +90,31 @@ test("Enter splits at the caret and focuses the new card", async () => {
   await waitFor(async () => {
     await expect(storedTexts(notebook.id)).resolves.toEqual(["alpha", " beta"]);
   });
+});
+
+test("Enter over a selection removes the selected text and splits", async () => {
+  const user = userEvent.setup();
+  const notebook = await seedNotebook(["alpha beta"]);
+
+  render(<NotebookEditor notebook={notebook} />);
+
+  const first = getLine("Line 1");
+
+  await waitFor(() => {
+    expect(first).toHaveFocus();
+  });
+  first.setSelectionRange(0, 5);
+  await user.keyboard("{Enter}");
+
+  const second = await screen.findByRole<HTMLTextAreaElement>("textbox", { name: "Line 2" });
+
+  expect(screen.getAllByRole("textbox")).toHaveLength(2);
+  expect(first).toHaveValue("");
+  expect(second).toHaveValue(" beta");
+  await waitFor(() => {
+    expect(second).toHaveFocus();
+  });
+  expect(second.selectionStart).toBe(0);
 });
 
 test("Backspace at the start merges into the previous card and focuses the join", async () => {
@@ -153,6 +180,34 @@ test("pasting CRLF text splits it across cards and focuses after the last part",
   expect(screen.getAllByRole("textbox")).toHaveLength(2);
   expect(first).toHaveValue("aX");
   expect(second).toHaveValue("Yb");
+  await waitFor(() => {
+    expect(second).toHaveFocus();
+  });
+  expect(second.selectionStart).toBe(1);
+});
+
+test("pasting multiline text over a selection replaces the selection", async () => {
+  const notebook = await seedNotebook(["abcdef"]);
+
+  render(<NotebookEditor notebook={notebook} />);
+
+  const first = getLine("Line 1");
+
+  await waitFor(() => {
+    expect(first).toHaveFocus();
+  });
+  first.setSelectionRange(1, 4);
+  fireEvent.paste(first, {
+    clipboardData: {
+      getData: () => "X\r\nY",
+    },
+  });
+
+  const second = await screen.findByRole<HTMLTextAreaElement>("textbox", { name: "Line 2" });
+
+  expect(screen.getAllByRole("textbox")).toHaveLength(2);
+  expect(first).toHaveValue("aX");
+  expect(second).toHaveValue("Yef");
   await waitFor(() => {
     expect(second).toHaveFocus();
   });
@@ -225,6 +280,32 @@ test("Arrow Up at the start of a line moves to the previous card", async () => {
     expect(first).toHaveFocus();
   });
   expect(first.selectionStart).toBe(0);
+});
+
+test("arrow navigation only moves focus and never persists", async () => {
+  const user = userEvent.setup();
+  const notebook = await seedNotebook(["first", "second"]);
+  const updateSpy = vi.spyOn(notebookRepository, "updateNotebook");
+
+  render(<NotebookEditor notebook={notebook} />);
+
+  const first = getLine("Line 1");
+  const second = getLine("Line 2");
+
+  await user.click(second);
+  second.setSelectionRange(0, 0);
+  await user.keyboard("{ArrowUp}");
+
+  await waitFor(() => {
+    expect(first).toHaveFocus();
+  });
+  expect(updateSpy).not.toHaveBeenCalled();
+
+  // Prove the spy intercepts the hook's write path, not that it is inert.
+  await user.type(first, "x");
+  await waitFor(() => {
+    expect(updateSpy).toHaveBeenCalled();
+  });
 });
 
 test("a single empty card cannot be merged away", async () => {

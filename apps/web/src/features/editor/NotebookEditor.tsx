@@ -20,7 +20,7 @@ export function NotebookEditor({ notebook }: NotebookEditorProps) {
           onChange(lineId, action.text);
           return;
         case "split":
-          onSplit(lineId, action.offset);
+          onSplit(lineId, action.offset, action.end);
           return;
         case "merge-previous":
           onMergePrevious(lineId);
@@ -32,7 +32,7 @@ export function NotebookEditor({ notebook }: NotebookEditorProps) {
           onNavigate(lineId, action.direction, action.offset ?? 0);
           return;
         case "paste":
-          onPaste(lineId, action.offset, action.text);
+          onPaste(lineId, action.offset, action.text, action.end);
       }
     },
     [onChange, onSplit, onMergePrevious, onMergeNext, onNavigate, onPaste],

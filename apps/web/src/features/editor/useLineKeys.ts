@@ -56,7 +56,11 @@ export function useLineKeys({ index, total, onAction }: UseLineKeysOptions): Use
         event.preventDefault();
 
         if (!hasModifier(event)) {
-          onAction({ type: "split", offset: textarea.selectionStart });
+          onAction({
+            type: "split",
+            offset: textarea.selectionStart,
+            end: textarea.selectionEnd,
+          });
         }
 
         return;
@@ -114,7 +118,12 @@ export function useLineKeys({ index, total, onAction }: UseLineKeysOptions): Use
       }
 
       event.preventDefault();
-      onAction({ type: "paste", offset: event.currentTarget.selectionStart, text });
+      onAction({
+        type: "paste",
+        offset: event.currentTarget.selectionStart,
+        text,
+        end: event.currentTarget.selectionEnd,
+      });
     },
     [onAction],
   );
