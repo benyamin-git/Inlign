@@ -65,6 +65,65 @@ test("typing updates the card and persists the line", async () => {
   });
 });
 
+test("loading a notebook writes nothing on its own", async () => {
+  const notebook = await seedNotebook(["loaded"]);
+  const updateSpy = vi.spyOn(notebookRepository, "updateNotebook");
+
+  render(<NotebookEditor notebook={notebook} />);
+
+  await waitFor(() => {
+    expect(getLine("Line 1")).toHaveValue("loaded");
+  });
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  expect(updateSpy).not.toHaveBeenCalled();
+});
+
+test("text edits wait for the autosave debounce before writing", async () => {
+  const notebook = await seedNotebook([""]);
+  const updateSpy = vi.spyOn(notebookRepository, "updateNotebook");
+
+  render(<NotebookEditor notebook={notebook} />);
+
+  const line = getLine("Line 1");
+
+  fireEvent.change(line, { target: { value: "debounced" } });
+
+  expect(line).toHaveValue("debounced");
+  expect(updateSpy).not.toHaveBeenCalled();
+
+  await waitFor(
+    () => {
+      expect(updateSpy).toHaveBeenCalledOnce();
+    },
+    { timeout: 1_500 },
+  );
+  await expect(storedTexts(notebook.id)).resolves.toEqual(["debounced"]);
+});
+
+test("a structure change writes immediately and cancels pending text", async () => {
+  const notebook = await seedNotebook(["ab"]);
+  const updateSpy = vi.spyOn(notebookRepository, "updateNotebook");
+
+  render(<NotebookEditor notebook={notebook} />);
+
+  const line = getLine("Line 1");
+
+  fireEvent.change(line, { target: { value: "abc" } });
+  line.setSelectionRange(3, 3);
+  fireEvent.keyDown(line, { key: "Enter" });
+
+  expect(updateSpy).toHaveBeenCalledOnce();
+  expect(updateSpy.mock.calls[0]?.[1].lines?.map((item) => item.text)).toEqual(["abc", ""]);
+
+  // The pending text snapshot was cancelled, so no second write arrives after
+  // the debounce window and the structure remains the newest version.
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  expect(updateSpy).toHaveBeenCalledOnce();
+  await expect(storedTexts(notebook.id)).resolves.toEqual(["abc", ""]);
+});
+
 test("Enter splits at the caret and focuses the new card", async () => {
   const user = userEvent.setup();
   const notebook = await seedNotebook(["alpha beta"]);

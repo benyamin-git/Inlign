@@ -28,7 +28,7 @@ test("types, splits, merges and reloads line cards", async ({ page }) => {
   await expect(first).toHaveValue("alphabeta");
   await expect(first).toBeFocused();
 
-  // Writes happen on every change for now; give the last one time to settle.
+  // The merge writes immediately; give the IndexedDB write time to settle.
   await page.waitForTimeout(300);
   await page.reload();
 

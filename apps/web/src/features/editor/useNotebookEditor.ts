@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Line, Notebook } from "../../data/models.ts";
 import { getNotebook, updateNotebook } from "../../data/notebooks.ts";
+import { useAutosave } from "./useAutosave.ts";
 import {
   insertText,
   mergeWithNext,
@@ -31,9 +32,9 @@ export type UseNotebookEditor = {
 };
 
 /**
- * Local line state for one notebook. Persistence is deliberately kept in one
- * helper so the autosave milestone can debounce text writes without touching
- * the line operations.
+ * Local line state for one notebook. Text writes are debounced; structural
+ * writes go straight to storage so a pending text snapshot cannot replace a
+ * newer set of lines.
  */
 export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
   const [state, setState] = useState<EditorState>(() => {
@@ -45,17 +46,22 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
   const focusTokenRef = useRef(1);
   // A slow repository read must not clobber text the user already typed.
   const editedRef = useRef(false);
+  const { schedule: scheduleAutosave, cancel: cancelAutosave } = useAutosave(notebook.id);
 
-  const persist = useCallback(
+  const commitText = useCallback(
     (lines: Line[]) => {
-      void updateNotebook(notebook.id, { lines }).catch(() => {
-        // Autosave will add retry and flush behavior; local state stays usable.
-      });
+      const safeLines = ensureLines(lines);
+      const next: EditorState = { lines: safeLines, focus: stateRef.current.focus };
+
+      editedRef.current = true;
+      stateRef.current = next;
+      setState(next);
+      scheduleAutosave(safeLines);
     },
-    [notebook.id],
+    [scheduleAutosave],
   );
 
-  const commitLines = useCallback(
+  const commitStructure = useCallback(
     (lines: Line[], focus?: { lineId: string; offset: number }) => {
       const safeLines = ensureLines(lines);
       const nextFocus: EditorFocus = focus
@@ -63,12 +69,17 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
         : stateRef.current.focus;
       const next: EditorState = { lines: safeLines, focus: nextFocus };
 
+      // Drop a text snapshot scheduled before this structure change. The
+      // structure write below already carries the newest local lines.
+      cancelAutosave();
       editedRef.current = true;
       stateRef.current = next;
       setState(next);
-      persist(safeLines);
+      void updateNotebook(notebook.id, { lines: safeLines }).catch(() => {
+        // A later edit retries; local state stays usable in the meantime.
+      });
     },
-    [persist],
+    [cancelAutosave, notebook.id],
   );
 
   const commitFocus = useCallback((lineId: string, offset: number) => {
@@ -84,10 +95,10 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
   const applyResult = useCallback(
     (result: LineOpResult | null) => {
       if (result) {
-        commitLines(result.lines, result.focus);
+        commitStructure(result.lines, result.focus);
       }
     },
-    [commitLines],
+    [commitStructure],
   );
 
   const onChange = useCallback(
@@ -104,9 +115,9 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
         itemIndex === index ? { ...item, text } : item,
       );
 
-      commitLines(lines);
+      commitText(lines);
     },
-    [commitLines],
+    [commitText],
   );
 
   const onSplit = useCallback(
@@ -156,9 +167,9 @@ export function useNotebookEditor(notebook: Notebook): UseNotebookEditor {
   // line survives unchanged, so the focus token is left alone.
   const onReorder = useCallback(
     (lines: Line[]) => {
-      commitLines(lines);
+      commitStructure(lines);
     },
-    [commitLines],
+    [commitStructure],
   );
 
   // The sidebar list can be stale after edits, so the editor loads the stored
