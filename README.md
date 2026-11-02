@@ -4,10 +4,10 @@ A local-first notepad for drafting math, with one line per card. The document is
 plain text; a Rust engine compiled to WebAssembly will compute and cross-check
 values in place.
 
-> Early development. The foundation milestone is complete: the workspace,
-> Rust/WASM engine pipeline, worker, build, tests and an installable PWA all
-> work. The card notepad UI does not exist yet, and neither does any math. The
-> previous implementation is archived at
+> Early development. The foundation milestone and the first card editor are
+> complete: the workspace, Rust/WASM engine pipeline, worker, build, tests, an
+> installable PWA and one-line card editing all work. Drag, autosave and math
+> are still to come. The previous implementation is archived at
 > [benyamin-git/Inlign-legacy](https://github.com/benyamin-git/Inlign-legacy).
 
 ## What works now
@@ -20,7 +20,8 @@ values in place.
   binary and icons.
 - The page now shows the real app shell: a collapsible notebook sidebar, an
   empty state, and create, inline rename, pin and delete flows backed by
-  IndexedDB. Card and line editing is the next milestone.
+  IndexedDB. The editor renders one logical line per card: Enter splits,
+  Backspace and Delete merge, and pasted newlines become separate cards.
 
 ## Why it exists
 
@@ -175,9 +176,9 @@ pnpm build
 ## Limitations
 
 - No math engine yet: no parsing, solving, checking, results or conflicts.
-- No card editing, drag and drop, autosave or import/export yet.
+- No drag and drop, autosave or import/export yet.
 - No settings or theme picker yet; the shell follows the stored theme.
-- No structural undo; only the textarea's native undo will exist.
+- No structural undo; only the textarea's native undo exists.
 - iOS may evict IndexedDB storage, so backups will matter once export lands.
 
 MIT licensed; see `LICENSE`.

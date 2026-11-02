@@ -42,7 +42,7 @@ test("creating from the empty state selects the new notebook", async () => {
     expect(screen.getByTestId("active-title")).toHaveTextContent("Untitled");
   });
   await waitFor(() => {
-    expect(screen.getByRole("heading", { name: "Untitled" })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Line 1" })).toHaveFocus();
   });
   expect(screen.queryByRole("heading", { name: "No notebooks yet" })).not.toBeInTheDocument();
   await expect(listNotebooks()).resolves.toHaveLength(1);
