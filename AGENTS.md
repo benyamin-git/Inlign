@@ -4,11 +4,12 @@ Inlign is a local-first notepad for drafting math, built as a React PWA with a
 Rust math engine compiled to WebAssembly. The repository is a pnpm workspace
 plus a Cargo workspace.
 
-This is the foundation milestone. It proves the toolchain end to end: the web
-app starts a worker, the worker imports the generated WASM package, and
-`version()` returns `0.1.0` from the Rust core. There is no notepad UI and no
-math yet. The card notepad (notebooks, one line per card, drag, persistence,
-themes, import/export) is the next milestone.
+The foundation and card notepad milestone is complete: notebooks, one-line card
+editing, autosave, reordering, themes and accents, `.inlign` transfer, JSON
+backup and restore, and the installable PWA are implemented and tested. Math is
+still to come. The engine client and module worker are implemented and
+unit-tested, but the UI does not instantiate them in this milestone; only
+`version()` crosses into Rust.
 
 ## Requirements
 
@@ -31,6 +32,7 @@ Run from the repository root.
 | `pnpm build` | Build the WASM package, then the production PWA into `apps/web/dist/`. |
 | `pnpm build:wasm` | Run `wasm-pack build --target bundler` into `packages/engine-wasm/pkg/`. |
 | `pnpm generate:accents` | Regenerate the committed accent tokens in `apps/web/src/theme/accents.css`. |
+| `pnpm generate:accents && git diff --exit-code -- apps/web/src/theme/accents.css` | Regenerate the accent tokens and fail if the committed file changes. |
 | `pnpm typecheck` | Build the WASM package, then run `tsc -b` for the web app. |
 | `pnpm lint` | Build the WASM package, then run ESLint with zero warnings. |
 | `pnpm format` | Write Prettier formatting for the web app. |
@@ -48,7 +50,8 @@ Run from the repository root.
 `build:wasm` first, because the web app imports the generated package and
 `pkg/` is never committed. `test:e2e` runs `pnpm build` first for the same
 reason. `format` and `format:check` are scoped to the web app; they do not
-format `docs/` or `.superpowers/`.
+format `docs/` or `.superpowers/`. CI runs the accent drift check after
+`format:check`, so a stale `accents.css` fails the build.
 
 Install Playwright Chromium only after `pnpm install`; before that, the filtered
 `playwright` binary does not exist and the command fails on a fresh clone. The
@@ -62,10 +65,12 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
   storage dependencies. It must stay testable with plain `cargo test`.
 - **WASM facade is thin.** `crates/engine-wasm` only exposes the core across
   `#[wasm_bindgen]`. No logic belongs there.
-- **WASM lives in the worker.** The UI never imports `@inlign/engine-wasm`
-  directly. `src/engine/client.ts` owns a request-id/promise map;
-  `src/engine/worker.ts` answers typed requests. The worker never throws across
-  the boundary; failures come back as `{ id, error }`.
+- **Engine client and worker are implemented, not wired.** The UI never imports
+  `@inlign/engine-wasm` directly. `src/engine/client.ts` owns a request-id and
+  promise map; `src/engine/worker.ts` answers typed requests. Both are
+  unit-tested, but the UI does not create an `EngineClient` in this milestone.
+  The worker never throws across the boundary; failures come back as
+  `{ id, error }`. Only `version()` is exposed across the WASM facade.
 - **The worker is an ES module.** `worker.format: "es"` in
   `apps/web/vite.config.ts` is required because the generated WASM module uses
   top-level await. wasm-bindgen 0.2.130's bundler output has no `init`
@@ -73,8 +78,10 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
   its message listener synchronously and defers the import with
   `import("@inlign/engine-wasm")`. Keep that order: registering the listener
   after an await would drop early requests.
-- **Data layer comes next.** Notebooks and settings will go through repository
-  hooks over Dexie (IndexedDB). No global store, no URL router.
+- **Data layer is implemented.** Notebooks and settings go through Dexie
+  repositories in `src/data/` and React hooks such as `useNotebooks`,
+  `useSettings` and `useTransfer`. IndexedDB is the store. There is no global
+  store and no URL router.
 - **Theme uses semantic tokens.** Components use CSS custom properties for
   surfaces, text, outlines and status. Raw hex stays in the theme source and
   the static PWA manifest.
@@ -105,7 +112,8 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
 
 ## Design record
 
-- Palette: skill `design` — six accents, default blue
-- Themes: Light / Dark / OLED; first run follows prefers-color-scheme; OLED opt-in
+- Palette: six accents, default blue
+- Themes: Light / Dark / OLED; first run follows `prefers-color-scheme`; OLED is
+  opt-in only
 - Type: JetBrains Mono
 - Approved: 2026-11-01

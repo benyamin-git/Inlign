@@ -4,45 +4,39 @@ A local-first notepad for drafting math, with one line per card. The document is
 plain text; a Rust engine compiled to WebAssembly will compute and cross-check
 values in place.
 
-> Early development. The foundation milestone and the first card editor are
-> complete: the workspace, Rust/WASM engine pipeline, worker, build, tests, an
-> installable PWA, one-line card editing, card reordering, sidebar notebook
-> ordering and pinning by pointer, touch and keyboard, autosave, the
-> Light/Dark/OLED theme and six-accent settings sheet, `.inlign` notebook
-> export and import, and JSON backup and restore all work. Math is still
-> to come. The previous
-> implementation is archived at
+> The foundation and card notepad milestone is complete. Notebooks, one-line
+> card editing, autosave, reordering, themes and accents, `.inlign` transfer,
+> JSON backup and restore, and the installable PWA work. Math is still to come.
+> The previous implementation is archived at
 > [benyamin-git/Inlign-legacy](https://github.com/benyamin-git/Inlign-legacy).
 
-## What works now
+## What works
 
-- The Vite app starts a module Web Worker, which imports the generated
-  `@inlign/engine-wasm` package and returns `0.1.0` from the Rust core.
-- `wasm-pack` builds `inlign-engine-wasm` from the pure `inlign-engine` crate.
-- Vitest unit tests, Playwright smoke and shell tests, and cargo tests pass.
-- The production build is an installable PWA with a precached app shell, WASM
-  binary and icons.
-- The page now shows the real app shell: a collapsible notebook sidebar, an
-  empty state, and create, inline rename, pin, reorder and delete flows backed
-  by IndexedDB. Notebooks reorder within the pinned and unpinned sections by
-  pointer, touch or keyboard, and pinning moves a notebook to the top of its
-  new section. The editor renders one logical line per card: Enter splits,
-  Backspace and Delete merge, pasted newlines become separate cards, and cards
-  can be dragged by their grip or moved with the keyboard. Text edits autosave
-  after a 400 ms pause and flush when the page is hidden, so a reload or a
-  notebook switch keeps the latest lines.
-- The settings sheet switches between Light, Dark and OLED and all six accents.
-  The choice is stored in IndexedDB, mirrored to localStorage so the first
-  paint never flashes the wrong theme, and follows the OS until you pick one.
+- Notebooks and settings persist in IndexedDB through Dexie repositories and
+  React hooks. There is no global store and no URL router.
+- The editor renders one logical line per card: Enter splits, Backspace and
+  Delete merge, pasted newlines become separate cards, and cards can be dragged
+  by their grip or moved with the keyboard.
+- Text edits autosave after a 400 ms pause and flush on blur, `pagehide` and when
+  the page is hidden, so a reload or a notebook switch keeps the latest lines.
+- Notebooks reorder within the pinned and unpinned sections by pointer, touch or
+  keyboard. Pinning moves a notebook to the top of its new section.
+- Settings switches between Light, Dark and OLED and all six accents. The choice
+  is stored in IndexedDB, mirrored to localStorage for the pre-paint theme
+  script, and follows the OS until a theme is chosen.
 - The notebook menu exports a notebook as a slugified `.inlign` plain-text file
   with one line per row and no trailing newline. Settings → Data imports an
-  `.inlign` file as a new notebook titled from its filename, and can export the
-  active notebook.
+  `.inlign` file as a new notebook and can export the active notebook.
 - Settings → Data exports a versioned `inlign-backup.json` backup containing
-  every notebook and the theme and accent. Importing one offers Add as new
-  (fresh ids), Merge (update matching ids, add missing, keep the rest) or
-  Replace all. Replace downloads a safety backup first and asks for a second
-  confirmation; all import modes validate the file before writing.
+  every notebook and the appearance settings. Import offers Add as new (fresh
+  ids), Merge (update matching ids, add missing, keep the rest) or Replace all.
+  Replace downloads a safety backup first and asks for a second confirmation,
+  and every mode validates the file before writing.
+- The Rust core builds to `@inlign/engine-wasm`; `EngineClient` and its module
+  worker are implemented and unit-tested. The UI does not instantiate them in
+  this milestone. Only `version()` crosses into Rust and returns `0.1.0`.
+- Vitest unit tests, Playwright browser tests and cargo tests cover the
+  workspace.
 
 ## Why it exists
 
@@ -133,17 +127,23 @@ cover the web app only, not `docs/`.
 
 `pnpm generate:accents` derives every accent role for Light, Dark and OLED
 from the house OKLCH seeds and writes `apps/web/src/theme/accents.css`. That
-file is committed and drift-checked: rerun the script and
+file is committed and drift-checked: rerun the script, then
 `git diff --exit-code -- apps/web/src/theme/accents.css` must stay clean.
 
 ## Project layout
 
 ```text
 apps/web/                   React 19 + Vite 8 PWA
-  src/app/                  app shell
-  src/engine/               worker client, protocol, worker
-  src/features/             editor, notebooks and settings screens
+  src/app/                  app shell and empty state
+  src/data/                 Dexie models, repositories, transfer and backup
+  src/engine/               EngineClient, typed protocol, module worker
+  src/features/editor/      card editor, line operations, autosave and drag
+  src/features/notebooks/   sidebar, notebook hooks and ordering
+  src/features/settings/    theme, accent and settings sheet
+  src/features/transfer/    `.inlign` and JSON import/export dialogs
+  src/lib/                  debounce and download helpers
   src/theme/                tokens.css, generated accents.css, theme helpers
+  src/ui/                   shared buttons, dialogs, menus and fields
   src/test/                 Vitest setup
   e2e/                      Playwright tests
   public/                   favicon and PWA icons
@@ -159,8 +159,10 @@ docs/superpowers/           approved spec and implementation plan
 ## PWA and offline
 
 The production build registers an auto-updating service worker and precaches
-the app shell, WASM binary, icons and other static assets. After one successful
-load, the app can be reloaded offline from the browser cache.
+the app shell: HTML, JavaScript, CSS, bundled JetBrains Mono fonts, icons and
+the manifest. No `.wasm` asset is emitted because the UI does not load the
+engine yet; the precache glob includes `wasm` for when it does. After one
+successful load, the app reloads offline from the precache and IndexedDB.
 
 PWA install and service-worker registration require a secure context:
 `localhost` or HTTPS. The LAN address `http://<host>:7406` serves the app, but
@@ -171,10 +173,12 @@ preview server to test install and offline behavior.
 ## Data and privacy
 
 There are no accounts, no telemetry and no requests to third-party services
-after the page loads. Notebooks are stored in IndexedDB in the browser;
-`.inlign` files export a single notebook, and Settings → Data exports a JSON
-backup of every notebook and the appearance settings. A restore never writes
-before the file validates and a mode is chosen.
+after the page loads. Notebooks and appearance settings are stored in IndexedDB
+in the browser. `.inlign` files export a single notebook as plain text, and
+Settings → Data exports a versioned JSON backup of every notebook and the
+appearance settings. A restore validates the file and offers Add, Merge or
+Replace before writing; Replace downloads a safety backup and requires a second
+confirmation.
 
 ## CI
 
@@ -191,6 +195,8 @@ cargo test --workspace
 pnpm typecheck
 pnpm lint
 pnpm format:check
+pnpm generate:accents
+git diff --exit-code -- apps/web/src/theme/accents.css
 pnpm test
 pnpm --filter @inlign/web exec playwright install --with-deps chromium
 pnpm test:e2e
@@ -201,6 +207,7 @@ pnpm build
 
 - No math engine yet: no parsing, solving, checking, results or conflicts.
 - No structural undo; only the textarea's native undo exists.
+- The editor is tuned for roughly 500 cards and has no list virtualization.
 - iOS may evict IndexedDB storage, so keep `.inlign` or JSON backup exports of
   anything important.
 
