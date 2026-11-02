@@ -23,7 +23,16 @@ export function Sheet({ open, label, onClose, children }: SheetProps) {
 
   return createPortal(
     <div className="fixed inset-0 z-40">
-      <div role="presentation" className="absolute inset-0 bg-scrim" onMouseDown={onClose} />
+      <div
+        role="presentation"
+        className="absolute inset-0 bg-scrim"
+        onMouseDown={(event) => {
+          // Same focus restoration contract as Dialog: the scrim must not move
+          // focus to <body> before the opener is restored.
+          event.preventDefault();
+          onClose();
+        }}
+      />
       <div
         ref={panelRef}
         role="dialog"

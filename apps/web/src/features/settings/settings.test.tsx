@@ -39,7 +39,7 @@ async function openSettings() {
   return { user, dialog: screen.getByRole("dialog", { name: "Settings" }) };
 }
 
-test("opens from the top bar, shows both sections and closes with Done", async () => {
+test("opens from the top bar, shows both sections, and closes with Done or the scrim", async () => {
   render(<App />);
 
   const opener = screen.getByRole("button", { name: "Settings" });
@@ -61,6 +61,40 @@ test("opens from the top bar, shows both sections and closes with Done", async (
 
   expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
   expect(opener).toHaveFocus();
+
+  // The scrim must also restore focus to the opener, not <body>.
+  await user.click(opener);
+
+  const scrim = document.querySelector<HTMLElement>('[role="presentation"]');
+
+  if (!scrim) {
+    throw new Error("Missing dialog scrim");
+  }
+
+  await user.click(scrim);
+
+  expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
+  expect(opener).toHaveFocus();
+});
+
+test("pins the resolved theme when its pre-checked option is clicked on a first run", async () => {
+  render(<App />);
+
+  const { user, dialog } = await openSettings();
+  const light = within(dialog).getByRole("radio", { name: "Light" });
+
+  // jsdom has no prefers-color-scheme, so the resolved first-run theme is Light.
+  expect(light).toBeChecked();
+  expect(window.localStorage.getItem("inlign.theme")).toBeNull();
+
+  await user.click(within(dialog).getByText("Light", { exact: true }));
+
+  expect(window.localStorage.getItem("inlign.theme")).toBe("light");
+  expect(within(dialog).getByRole("radio", { name: "Light" })).toBeChecked();
+
+  await waitFor(async () => {
+    await expect(settingsData.getSettings()).resolves.toMatchObject({ theme: "light" });
+  });
 });
 
 test("switching theme applies immediately and persists to the mirror and Dexie", async () => {
@@ -68,7 +102,8 @@ test("switching theme applies immediately and persists to the mirror and Dexie",
 
   const { user, dialog } = await openSettings();
 
-  await user.click(within(dialog).getByRole("radio", { name: "Dark" }));
+  // Click the visible label, not the clipped radio input.
+  await user.click(within(dialog).getByText("Dark", { exact: true }));
 
   expect(document.documentElement.dataset.theme).toBe("dark");
   expect(window.localStorage.getItem("inlign.theme")).toBe("dark");
@@ -85,7 +120,7 @@ test("switching accent applies immediately and persists to the mirror and Dexie"
 
   const { user, dialog } = await openSettings();
 
-  await user.click(within(dialog).getByRole("radio", { name: "Rose" }));
+  await user.click(within(dialog).getByText("Rose", { exact: true }));
 
   expect(document.documentElement.dataset.accent).toBe("rose");
   expect(window.localStorage.getItem("inlign.accent")).toBe("rose");

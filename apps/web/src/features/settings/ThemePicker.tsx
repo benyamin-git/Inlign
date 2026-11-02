@@ -25,17 +25,24 @@ export function ThemePicker({ value, resolvedTheme, onChange }: ThemePickerProps
   return (
     <fieldset className="m-0 min-w-0 border-0 p-0">
       <legend className="mb-2 text-sm font-medium text-on-surface">Theme</legend>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 overflow-hidden rounded-button border border-outline">
         {THEMES.map((theme) => (
           <label
             key={theme}
-            className="flex h-12 cursor-pointer items-center justify-center gap-1.5 rounded-button border border-outline px-2 text-sm text-on-surface-variant transition-colors hover:bg-surface-container has-[:checked]:border-primary has-[:checked]:bg-primary-container has-[:checked]:text-on-primary-container has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary"
+            className="flex h-12 cursor-pointer items-center justify-center gap-1.5 border-e border-outline px-2 text-sm text-on-surface-variant transition-colors last:border-e-0 hover:bg-surface-container has-[:checked]:bg-primary-container has-[:checked]:text-on-primary-container has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-primary"
           >
             <input
               type="radio"
               name={name}
               value={theme}
               checked={selected === theme}
+              onClick={() => {
+                // A checked radio fires no native change, so the resolved
+                // first-run choice needs an explicit click to become pinned.
+                if (value === null && theme === resolvedTheme) {
+                  onChange(theme);
+                }
+              }}
               onChange={() => {
                 onChange(theme);
               }}
