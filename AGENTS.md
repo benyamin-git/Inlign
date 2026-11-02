@@ -7,9 +7,9 @@ plus a Cargo workspace.
 The foundation and card notepad milestone is complete: notebooks, one-line card
 editing, autosave, reordering, themes and accents, `.inlign` transfer, JSON
 backup and restore, and the installable PWA are implemented and tested. Math is
-still to come. The engine client and module worker are implemented and
-unit-tested, but the UI does not instantiate them in this milestone; only
-`version()` crosses into Rust.
+still to come. `EngineClient` is unit-tested; its module worker is implemented
+but not directly unit-tested. The UI does not instantiate either in this
+milestone; only `version()` crosses into Rust.
 
 ## Requirements
 
@@ -67,9 +67,10 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
   `#[wasm_bindgen]`. No logic belongs there.
 - **Engine client and worker are implemented, not wired.** The UI never imports
   `@inlign/engine-wasm` directly. `src/engine/client.ts` owns a request-id and
-  promise map; `src/engine/worker.ts` answers typed requests. Both are
-  unit-tested, but the UI does not create an `EngineClient` in this milestone.
-  The worker never throws across the boundary; failures come back as
+  promise map; `src/engine/worker.ts` answers typed requests. The client is
+  unit-tested with a stubbed `Worker`; the worker is implemented but not
+  directly unit-tested. The UI does not create an `EngineClient` in this
+  milestone. The worker never throws across the boundary; failures come back as
   `{ id, error }`. Only `version()` is exposed across the WASM facade.
 - **The worker is an ES module.** `worker.format: "es"` in
   `apps/web/vite.config.ts` is required because the generated WASM module uses
@@ -93,8 +94,8 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
 - No math in this milestone: no parsing, classification, solving, checking,
   highlighting, results or conflicts. Only `version()` crosses into Rust.
 - No raw hex in components. Use semantic theme tokens.
-- No network requests after load, no accounts, no telemetry. English strings
-  are hard-coded; there is no i18n layer.
+- No network requests for app data or third-party services after load, no
+  accounts, no telemetry. English strings are hard-coded; there is no i18n layer.
 - Undo is the textarea's native undo only. There is no structural undo.
 - Generated files never enter git: `packages/engine-wasm/pkg/**` and
   `apps/web/dist/**` are ignored. The committed package shim at

@@ -17,8 +17,9 @@ values in place.
 - The editor renders one logical line per card: Enter splits, Backspace and
   Delete merge, pasted newlines become separate cards, and cards can be dragged
   by their grip or moved with the keyboard.
-- Text edits autosave after a 400 ms pause and flush on blur, `pagehide` and when
-  the page is hidden, so a reload or a notebook switch keeps the latest lines.
+- Text edits autosave after a 400 ms pause and flush on window blur, `pagehide`
+  and when the page is hidden, so a reload or a notebook switch keeps the latest
+  lines.
 - Notebooks reorder within the pinned and unpinned sections by pointer, touch or
   keyboard. Pinning moves a notebook to the top of its new section.
 - Settings switches between Light, Dark and OLED and all six accents. The choice
@@ -30,11 +31,12 @@ values in place.
 - Settings → Data exports a versioned `inlign-backup.json` backup containing
   every notebook and the appearance settings. Import offers Add as new (fresh
   ids), Merge (update matching ids, add missing, keep the rest) or Replace all.
-  Replace downloads a safety backup first and asks for a second confirmation,
-  and every mode validates the file before writing.
-- The Rust core builds to `@inlign/engine-wasm`; `EngineClient` and its module
-  worker are implemented and unit-tested. The UI does not instantiate them in
-  this milestone. Only `version()` crosses into Rust and returns `0.1.0`.
+  Replace starts a safety-backup download before asking for a second
+  confirmation, and every mode validates the file before writing.
+- The Rust core builds to `@inlign/engine-wasm`; `EngineClient` is unit-tested
+  and its module worker is implemented but not directly unit-tested. The UI does
+  not instantiate either in this milestone. Only `version()` crosses into Rust
+  and returns `0.1.0`.
 - Vitest unit tests, Playwright browser tests and cargo tests cover the
   workspace.
 
@@ -177,8 +179,8 @@ after the page loads. Notebooks and appearance settings are stored in IndexedDB
 in the browser. `.inlign` files export a single notebook as plain text, and
 Settings → Data exports a versioned JSON backup of every notebook and the
 appearance settings. A restore validates the file and offers Add, Merge or
-Replace before writing; Replace downloads a safety backup and requires a second
-confirmation.
+Replace before writing; Replace starts a safety-backup download and requires a
+second confirmation.
 
 ## CI
 
@@ -205,9 +207,11 @@ pnpm build
 
 ## Limitations
 
-- No math engine yet: no parsing, solving, checking, results or conflicts.
+- No math yet: the engine exposes only `version()`, so there is no parsing,
+  solving, checking, results or conflicts.
 - No structural undo; only the textarea's native undo exists.
-- The editor is tuned for roughly 500 cards and has no list virtualization.
+- The editor targets roughly 500 cards; that figure is a spec target, not a
+  measured benchmark, and there is no list virtualization.
 - iOS may evict IndexedDB storage, so keep `.inlign` or JSON backup exports of
   anything important.
 
