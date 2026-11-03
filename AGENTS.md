@@ -6,10 +6,10 @@ plus a Cargo workspace.
 
 The foundation and card notepad milestone is complete: notebooks, one-line card
 editing, autosave, reordering, themes and accents, `.inlign` transfer, JSON
-backup and restore, and the installable PWA are implemented and tested. Math is
-still to come. `EngineClient` is unit-tested; its module worker is implemented
-but not directly unit-tested. The UI does not instantiate either in this
-milestone; only `version()` crosses into Rust.
+backup and restore, the installable PWA, and basic math token highlighting are
+implemented and tested. Math evaluation is still to come. `EngineClient` is
+unit-tested; its module worker is implemented but not directly unit-tested. The
+UI does not instantiate either yet; only `version()` crosses into Rust.
 
 ## Requirements
 
@@ -80,6 +80,10 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
   its message listener synchronously and defers the import with
   `import("@inlign/engine-wasm")`. Keep that order: registering the listener
   after an await would drop early requests.
+- **Math highlighting is presentation only.** `src/features/editor/mathSyntax.ts`
+  tokenizes numbers, operators and call names for a color layer behind the
+  transparent textarea. It does not parse, evaluate, check or use the engine.
+  The textarea still owns the editable text, selection and undo.
 - **Data layer is implemented.** Notebooks and settings go through Dexie
   repositories in `src/data/` and React hooks such as `useNotebooks`,
   `useSettings` and `useTransfer`. IndexedDB is the store. There is no global
@@ -95,8 +99,9 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
 
 - One logical line per card. A line is `{ id: string; text: string }`; a
   notebook always has at least one line.
-- No math in this milestone: no parsing, classification, solving, checking,
-  highlighting, results or conflicts. Only `version()` crosses into Rust.
+- Math is highlighting only: no parsing, classification, solving, checking,
+  results or conflicts. The highlighter is a TypeScript tokenizer in the editor;
+  only `version()` crosses into Rust.
 - No raw hex in components. Use semantic theme tokens.
 - No network requests for app data or third-party services after load, no
   accounts, no telemetry. English strings are hard-coded; there is no i18n layer.

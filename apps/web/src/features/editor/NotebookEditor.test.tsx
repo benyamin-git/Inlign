@@ -65,6 +65,21 @@ test("typing updates the card and persists the line", async () => {
   });
 });
 
+test("highlights math tokens behind the text without duplicating the line", async () => {
+  const notebook = await seedNotebook(["2 + 3 = 5"]);
+
+  render(<NotebookEditor notebook={notebook} />);
+
+  const line = getLine("Line 1");
+  const highlight = document.querySelector("[data-line-highlight]");
+
+  expect(line).toHaveValue("2 + 3 = 5");
+  expect(highlight).toHaveAttribute("aria-hidden", "true");
+  expect(highlight).toHaveTextContent("2 + 3 = 5");
+  expect(highlight?.querySelectorAll(".text-primary")).toHaveLength(3);
+  expect(highlight?.querySelectorAll(".text-tertiary")).toHaveLength(2);
+});
+
 test("loading a notebook writes nothing on its own", async () => {
   const notebook = await seedNotebook(["loaded"]);
   const updateSpy = vi.spyOn(notebookRepository, "updateNotebook");

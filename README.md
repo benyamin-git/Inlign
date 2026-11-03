@@ -6,8 +6,9 @@ values in place.
 
 > The foundation and card notepad milestone is complete. Notebooks, one-line
 > card editing, autosave, reordering, themes and accents, `.inlign` transfer,
-> JSON backup and restore, and the installable PWA work. Math is still to come.
-> The previous implementation is archived at
+> JSON backup and restore, the installable PWA, and basic math token
+> highlighting work. Math evaluation is still to come. The previous
+> implementation is archived at
 > [benyamin-git/Inlign-legacy](https://github.com/benyamin-git/Inlign-legacy).
 
 ## What works
@@ -17,6 +18,9 @@ values in place.
 - The editor renders one logical line per card: Enter splits, Backspace and
   Delete merge, pasted newlines become separate cards, and cards can be dragged
   by their grip or moved with the keyboard.
+- Numbers, operators and function-call names are highlighted behind the card
+  text. The tokenizer is presentation only: it adds color and nothing is parsed
+  or evaluated.
 - Text edits autosave after a 400 ms pause and flush on window blur, `pagehide`
   and when the page is hidden, so a reload or a notebook switch keeps the latest
   lines.
@@ -150,7 +154,8 @@ apps/web/                   React 19 + Vite 8 PWA
   src/app/                  app shell and empty state
   src/data/                 Dexie models, repositories, transfer and backup
   src/engine/               EngineClient, typed protocol, module worker
-  src/features/editor/      card editor, line operations, autosave and drag
+  src/features/editor/      card editor, token highlighting, line operations,
+                            autosave and drag
   src/features/notebooks/   sidebar, notebook hooks and ordering
   src/features/settings/    theme, accent and settings sheet
   src/features/transfer/    `.inlign` and JSON import/export dialogs
@@ -218,8 +223,9 @@ pnpm build
 
 ## Limitations
 
-- No math yet: the engine exposes only `version()`, so there is no parsing,
-  solving, checking, results or conflicts.
+- Math is highlighting only. Numbers, operators and call names are colored by a
+  TypeScript tokenizer; the engine exposes only `version()`, so there is no
+  parsing, solving, checking, results or conflicts.
 - No structural undo; only the textarea's native undo exists.
 - The editor targets roughly 500 cards; that figure is a spec target, not a
   measured benchmark, and there is no list virtualization.

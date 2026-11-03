@@ -1,10 +1,11 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 
 import type { Line } from "../../data/models.ts";
 import { GripIcon } from "../../ui/icons.tsx";
 import type { LineAction } from "./lineOps.ts";
+import { highlightMath } from "./mathSyntax.ts";
 import { useLineKeys } from "./useLineKeys.ts";
 
 export type LineCardProps = {
@@ -17,6 +18,7 @@ export type LineCardProps = {
 export function LineCard({ line, index, total, onAction }: LineCardProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { onKeyDown, onPaste } = useLineKeys({ index, total, onAction });
+  const tokens = useMemo(() => highlightMath(line.text), [line.text]);
   const {
     attributes,
     isDragging,
@@ -117,21 +119,42 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
       >
         <GripIcon className="h-6 w-6" />
       </button>
-      <textarea
-        ref={textareaRef}
-        aria-label={`Line ${String(index + 1)}`}
-        data-line-id={line.id}
-        rows={1}
-        value={line.text}
-        spellCheck={false}
-        autoComplete="off"
-        className="min-h-6 w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-base leading-6 text-on-surface outline-none focus-visible:outline-none"
-        onChange={(event) => {
-          onAction({ type: "change", text: event.target.value });
-        }}
-        onKeyDown={onKeyDown}
-        onPaste={onPaste}
-      />
+      {/* The transparent textarea sits exactly over a colored token layer. */}
+      <div className="relative min-h-6 w-full min-w-0">
+        <div
+          aria-hidden="true"
+          data-line-highlight=""
+          className="pointer-events-none absolute inset-0 select-none overflow-hidden break-words whitespace-pre-wrap text-base leading-6 text-on-surface forced-colors:hidden"
+        >
+          {tokens.map((token, tokenIndex) =>
+            token.type === "text" ? (
+              token.text
+            ) : (
+              <span
+                key={tokenIndex}
+                className={token.type === "operator" ? "text-tertiary" : "text-primary"}
+              >
+                {token.text}
+              </span>
+            ),
+          )}
+        </div>
+        <textarea
+          ref={textareaRef}
+          aria-label={`Line ${String(index + 1)}`}
+          data-line-id={line.id}
+          rows={1}
+          value={line.text}
+          spellCheck={false}
+          autoComplete="off"
+          className="relative block min-h-6 w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-base leading-6 text-transparent caret-on-surface outline-none selection:bg-primary/30 focus-visible:outline-none"
+          onChange={(event) => {
+            onAction({ type: "change", text: event.target.value });
+          }}
+          onKeyDown={onKeyDown}
+          onPaste={onPaste}
+        />
+      </div>
     </li>
   );
 }
