@@ -4,12 +4,14 @@
 //! prefix evaluation. It has no WASM, DOM, React, storage or worker dependency.
 
 pub mod ast;
+pub mod evaluate;
 pub mod format;
 pub mod lexer;
 pub mod parser;
 pub mod solver;
 
 pub use ast::{BinOp, Equation, Expr};
+pub use evaluate::{InputLine, LineEvaluation, LineStatus, evaluate};
 pub use format::{
     RELATIVE_TOLERANCE, SIGNIFICANT_DIGITS, Suggestion, approx_eq, format_set, format_value,
     suggestion_for,
