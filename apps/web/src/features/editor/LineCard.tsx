@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { Line } from "../../data/models.ts";
 import type { LineEvaluation } from "../../engine/protocol.ts";
@@ -17,8 +17,12 @@ export type LineCardProps = {
   onAction: (action: LineAction) => void;
 };
 
-export function LineCard({ line, index, total, onAction }: LineCardProps) {
+export function LineCard({ line, index, total, annotation, onAction }: LineCardProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState(false);
+  const [caretAtEnd, setCaretAtEnd] = useState(false);
+  const messageId = useId();
   const { onKeyDown, onPaste } = useLineKeys({ index, total, onAction });
   const tokens = useMemo(() => highlightMath(line.text), [line.text]);
   const {
@@ -31,6 +35,26 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
     transition,
   } = useSortable({ id: line.id });
 
+  const error = annotation?.status === "error" ? annotation.error : undefined;
+  const suggestion = annotation?.status === "incomplete" ? annotation.suggestion : undefined;
+  const dimmed = annotation?.status === "skipped";
+  const visibleSuggestion = focused && caretAtEnd ? suggestion : undefined;
+  const suggestionText = visibleSuggestion?.display;
+  const mark = dimmed
+    ? null
+    : error !== undefined
+      ? { type: "error" as const, text: error }
+      : suggestionText !== undefined
+        ? { type: "suggestion" as const, text: suggestionText }
+        : null;
+  const separator = line.text.length > 0 && !/\s$/.test(line.text) ? " " : null;
+  const description =
+    error !== undefined
+      ? `Error: ${error}.`
+      : visibleSuggestion !== undefined
+        ? `Suggestion: ${visibleSuggestion.display}. Press Tab to accept ${visibleSuggestion.insert}.`
+        : undefined;
+
   const grow = useCallback(() => {
     const textarea = textareaRef.current;
 
@@ -39,14 +63,23 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
     }
 
     textarea.style.height = "auto";
-    textarea.style.height = `${String(textarea.scrollHeight)}px`;
+    const textareaHeight = textarea.scrollHeight;
+    const highlightHeight = highlightRef.current?.scrollHeight ?? 0;
+    textarea.style.height = `${String(Math.max(textareaHeight, highlightHeight))}px`;
   }, []);
 
-  // Text changes can wrap to another row; measure after the browser lays the
-  // new value out.
+  const updateCaret = useCallback((textarea: HTMLTextAreaElement) => {
+    setCaretAtEnd(
+      textarea.selectionStart === textarea.selectionEnd &&
+        textarea.selectionStart === textarea.value.length,
+    );
+  }, []);
+
+  // Text or annotation changes can wrap to another row; measure after the
+  // browser lays the new value out.
   useLayoutEffect(() => {
     grow();
-  }, [grow, line.text]);
+  }, [dimmed, error, grow, line.text, suggestionText]);
 
   // Width changes also reflow the text. Comparing width keeps the observer from
   // looping on the height writes it causes.
@@ -102,13 +135,16 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
     <li
       ref={setNodeRef}
       data-line-id={line.id}
+      data-engine-status={annotation?.status ?? "none"}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className={`relative flex items-center gap-2 rounded-card border border-outline bg-surface-container px-3 py-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary md:py-2 ${
-        isDragging ? "z-10 border-primary bg-surface-container-high" : ""
-      }`}
+      className={`relative flex items-center gap-2 rounded-card border px-3 py-3 focus-within:outline-2 focus-within:outline-offset-2 md:py-2 ${
+        error === undefined
+          ? "border-outline focus-within:outline-primary"
+          : "border-loss focus-within:outline-loss"
+      } ${isDragging ? "z-10 border-primary bg-surface-container-high" : "bg-surface-container"}`}
     >
       <button
         {...attributes}
@@ -124,26 +160,44 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
       {/* The transparent textarea sits exactly over a colored token layer. */}
       <div className="relative min-h-6 w-full min-w-0">
         <div
+          ref={highlightRef}
           aria-hidden="true"
           data-line-highlight=""
-          className="pointer-events-none absolute inset-0 select-none overflow-hidden break-words whitespace-pre-wrap text-base leading-6 text-on-surface forced-colors:hidden"
+          className={`pointer-events-none absolute inset-0 select-none overflow-hidden break-words whitespace-pre-wrap text-base leading-6 forced-colors:hidden ${
+            dimmed ? "text-on-surface-variant" : "text-on-surface"
+          }`}
         >
-          {tokens.map((token, tokenIndex) =>
-            token.type === "text" ? (
-              token.text
-            ) : (
+          {dimmed
+            ? line.text
+            : tokens.map((token, tokenIndex) =>
+                token.type === "text" ? (
+                  token.text
+                ) : (
+                  <span
+                    key={tokenIndex}
+                    className={token.type === "operator" ? "text-tertiary" : "text-primary"}
+                  >
+                    {token.text}
+                  </span>
+                ),
+              )}
+          {mark === null ? null : (
+            <>
+              {separator}
               <span
-                key={tokenIndex}
-                className={token.type === "operator" ? "text-tertiary" : "text-primary"}
+                data-line-annotation={mark.type}
+                className={mark.type === "error" ? "text-loss" : "text-on-surface-variant"}
               >
-                {token.text}
+                {mark.text}
               </span>
-            ),
+            </>
           )}
         </div>
         <textarea
           ref={textareaRef}
           aria-label={`Line ${String(index + 1)}`}
+          aria-invalid={error === undefined ? undefined : true}
+          aria-describedby={description === undefined ? undefined : messageId}
           data-line-id={line.id}
           rows={1}
           value={line.text}
@@ -153,9 +207,27 @@ export function LineCard({ line, index, total, onAction }: LineCardProps) {
           onChange={(event) => {
             onAction({ type: "change", text: event.target.value });
           }}
+          onFocus={(event) => {
+            setFocused(true);
+            updateCaret(event.currentTarget);
+          }}
+          onBlur={() => {
+            setFocused(false);
+          }}
+          onSelect={(event) => {
+            updateCaret(event.currentTarget);
+          }}
+          onKeyUp={(event) => {
+            updateCaret(event.currentTarget);
+          }}
           onKeyDown={onKeyDown}
           onPaste={onPaste}
         />
+        {description === undefined ? null : (
+          <p id={messageId} className="sr-only">
+            {description}
+          </p>
+        )}
       </div>
     </li>
   );
