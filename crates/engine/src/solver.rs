@@ -363,7 +363,12 @@ pub fn solve_univariate(
         PolyOutcome::Poly(poly) => solve_poly(poly),
         PolyOutcome::DivisionByZero => UnivariateOutcome::DivisionByZero,
         PolyOutcome::NonFinite => UnivariateOutcome::NonFinite,
-        PolyOutcome::NotPolynomial => UnivariateOutcome::Unsolved,
+        PolyOutcome::NotPolynomial => match to_rational(expr, var, values) {
+            RationalOutcome::Rational(form) => solve_rational(form),
+            RationalOutcome::DivisionByZero => UnivariateOutcome::DivisionByZero,
+            RationalOutcome::NonFinite => UnivariateOutcome::NonFinite,
+            RationalOutcome::NotRational => UnivariateOutcome::Unsolved,
+        },
     }
 }
 
@@ -461,7 +466,6 @@ impl Poly {
         Some(result)
     }
 
-    #[allow(dead_code)]
     fn eval(&self, x: f64) -> f64 {
         self.coeffs
             .iter()
@@ -483,6 +487,241 @@ fn ensure_finite(poly: Poly) -> PolyOutcome {
         PolyOutcome::Poly(poly)
     } else {
         PolyOutcome::NonFinite
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct RationalForm {
+    numerator: Poly,
+    denominator: Poly,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum RationalOutcome {
+    Rational(RationalForm),
+    NotRational,
+    DivisionByZero,
+    NonFinite,
+}
+
+fn rational_constant(value: f64) -> RationalOutcome {
+    if !value.is_finite() {
+        return RationalOutcome::NonFinite;
+    }
+    RationalOutcome::Rational(RationalForm {
+        numerator: Poly::constant(value),
+        denominator: Poly::one(),
+    })
+}
+
+fn cap_rational(numerator: Poly, denominator: Poly) -> RationalOutcome {
+    if denominator.is_zero() {
+        return RationalOutcome::DivisionByZero;
+    }
+    if !numerator.coeffs.iter().all(|coeff| coeff.is_finite())
+        || !denominator.coeffs.iter().all(|coeff| coeff.is_finite())
+    {
+        return RationalOutcome::NonFinite;
+    }
+    if numerator.degree() > 2 || denominator.degree() > 1 {
+        return RationalOutcome::NotRational;
+    }
+    RationalOutcome::Rational(RationalForm {
+        numerator,
+        denominator,
+    })
+}
+
+fn rational_hard(left: &RationalOutcome, right: &RationalOutcome) -> Option<RationalOutcome> {
+    if matches!(left, RationalOutcome::DivisionByZero)
+        || matches!(right, RationalOutcome::DivisionByZero)
+    {
+        return Some(RationalOutcome::DivisionByZero);
+    }
+    if matches!(left, RationalOutcome::NonFinite) || matches!(right, RationalOutcome::NonFinite) {
+        return Some(RationalOutcome::NonFinite);
+    }
+    if matches!(left, RationalOutcome::NotRational) || matches!(right, RationalOutcome::NotRational)
+    {
+        return Some(RationalOutcome::NotRational);
+    }
+    None
+}
+
+fn to_rational(expr: &Expr, var: &str, values: &BTreeMap<String, f64>) -> RationalOutcome {
+    match expr {
+        Expr::Number(value) => rational_constant(*value),
+        Expr::Var(name) => {
+            if name == var {
+                RationalOutcome::Rational(RationalForm {
+                    numerator: Poly {
+                        coeffs: vec![0.0, 1.0],
+                    },
+                    denominator: Poly::one(),
+                })
+            } else if let Some(value) = values.get(name) {
+                rational_constant(*value)
+            } else {
+                RationalOutcome::NotRational
+            }
+        }
+        Expr::Neg(inner) => match to_rational(inner, var, values) {
+            RationalOutcome::Rational(form) => {
+                cap_rational(form.numerator.scale(-1.0), form.denominator)
+            }
+            other => other,
+        },
+        Expr::PlusMinus(_) => RationalOutcome::NotRational,
+        Expr::Binary { op, left, right } => match op {
+            BinOp::Add | BinOp::Sub => {
+                let left = to_rational(left, var, values);
+                let right = to_rational(right, var, values);
+                if let Some(hard) = rational_hard(&left, &right) {
+                    return hard;
+                }
+                let RationalOutcome::Rational(left) = left else {
+                    return RationalOutcome::NotRational;
+                };
+                let RationalOutcome::Rational(right) = right else {
+                    return RationalOutcome::NotRational;
+                };
+                let left_term = left.numerator.mul(&right.denominator);
+                let right_term = right.numerator.mul(&left.denominator);
+                let numerator = if *op == BinOp::Sub {
+                    left_term.sub(&right_term)
+                } else {
+                    left_term.add(&right_term)
+                };
+                cap_rational(numerator, left.denominator.mul(&right.denominator))
+            }
+            BinOp::Mul => {
+                let left = to_rational(left, var, values);
+                let right = to_rational(right, var, values);
+                if let Some(hard) = rational_hard(&left, &right) {
+                    return hard;
+                }
+                let RationalOutcome::Rational(left) = left else {
+                    return RationalOutcome::NotRational;
+                };
+                let RationalOutcome::Rational(right) = right else {
+                    return RationalOutcome::NotRational;
+                };
+                cap_rational(
+                    left.numerator.mul(&right.numerator),
+                    left.denominator.mul(&right.denominator),
+                )
+            }
+            BinOp::Div => {
+                let left = to_rational(left, var, values);
+                let right = to_rational(right, var, values);
+                if matches!(&left, RationalOutcome::DivisionByZero)
+                    || matches!(&right, RationalOutcome::DivisionByZero)
+                {
+                    return RationalOutcome::DivisionByZero;
+                }
+                if matches!(&left, RationalOutcome::NonFinite)
+                    || matches!(&right, RationalOutcome::NonFinite)
+                {
+                    return RationalOutcome::NonFinite;
+                }
+                let RationalOutcome::Rational(right) = right else {
+                    return RationalOutcome::NotRational;
+                };
+                if right.numerator.is_zero() {
+                    return RationalOutcome::DivisionByZero;
+                }
+                let RationalOutcome::Rational(left) = left else {
+                    return RationalOutcome::NotRational;
+                };
+                cap_rational(
+                    left.numerator.mul(&right.denominator),
+                    left.denominator.mul(&right.numerator),
+                )
+            }
+            BinOp::Pow => {
+                let base = match to_rational(left, var, values) {
+                    RationalOutcome::Rational(base) => base,
+                    other => return other,
+                };
+                let exponent = match rational_exponent(right, values) {
+                    Ok(exponent) => exponent,
+                    Err(outcome) => return outcome,
+                };
+                if base.numerator.degree() == 0 && base.denominator.degree() == 0 {
+                    let value = base.numerator.coeffs[0] / base.denominator.coeffs[0];
+                    let powered = value.powf(exponent);
+                    return if powered.is_finite() {
+                        RationalOutcome::Rational(RationalForm {
+                            numerator: Poly::constant(powered),
+                            denominator: Poly::one(),
+                        })
+                    } else {
+                        RationalOutcome::NonFinite
+                    };
+                }
+                if exponent.fract() != 0.0 || exponent.abs() > 64.0 {
+                    return RationalOutcome::NotRational;
+                }
+                let power = exponent as i64;
+                let (numerator_base, denominator_base) = if power >= 0 {
+                    (base.numerator, base.denominator)
+                } else {
+                    if base.numerator.is_zero() {
+                        return RationalOutcome::DivisionByZero;
+                    }
+                    (base.denominator, base.numerator)
+                };
+                let magnitude = power.unsigned_abs() as u32;
+                let Some(numerator) = numerator_base.pow(magnitude, 64) else {
+                    return RationalOutcome::NotRational;
+                };
+                let Some(denominator) = denominator_base.pow(magnitude, 64) else {
+                    return RationalOutcome::NotRational;
+                };
+                cap_rational(numerator, denominator)
+            }
+        },
+    }
+}
+
+fn rational_exponent(expr: &Expr, values: &BTreeMap<String, f64>) -> Result<f64, RationalOutcome> {
+    match linearize(expr, values) {
+        LinearizeOutcome::Numeric(value) => Ok(value),
+        LinearizeOutcome::DivisionByZero => Err(RationalOutcome::DivisionByZero),
+        LinearizeOutcome::NonFinite => Err(RationalOutcome::NonFinite),
+        LinearizeOutcome::Linear(_) | LinearizeOutcome::Nonlinear => {
+            Err(RationalOutcome::NotRational)
+        }
+    }
+}
+
+fn solve_rational(form: RationalForm) -> UnivariateOutcome {
+    let RationalForm {
+        numerator,
+        denominator,
+    } = form;
+    if denominator.is_zero() {
+        return UnivariateOutcome::DivisionByZero;
+    }
+    if numerator.is_zero() {
+        return UnivariateOutcome::Identity;
+    }
+    match solve_poly(numerator) {
+        UnivariateOutcome::Roots(roots) => {
+            let roots: Vec<f64> = roots
+                .into_iter()
+                .filter(|root| {
+                    let value = denominator.eval(*root);
+                    value.is_finite() && !approx_eq(value, 0.0)
+                })
+                .collect();
+            if roots.is_empty() {
+                UnivariateOutcome::NoRealRoots
+            } else {
+                UnivariateOutcome::Roots(roots)
+            }
+        }
+        other => other,
     }
 }
 
@@ -1131,5 +1370,101 @@ mod polynomial {
             solve_univariate(&expr("1 / 0"), "x", &empty()),
             UnivariateOutcome::DivisionByZero
         );
+    }
+}
+
+#[cfg(test)]
+mod rational {
+    use super::*;
+    use crate::ParseOutcome;
+    use crate::format::approx_eq;
+
+    fn expr(input: &str) -> Expr {
+        match crate::parse(&format!("a = {input}")).unwrap() {
+            ParseOutcome::Equation(equation) => equation.right,
+            other => panic!("expected equation, got {other:?}"),
+        }
+    }
+
+    fn empty() -> BTreeMap<String, f64> {
+        BTreeMap::new()
+    }
+
+    fn assert_roots(outcome: UnivariateOutcome, expected: &[f64]) {
+        match outcome {
+            UnivariateOutcome::Roots(roots) => {
+                assert_eq!(roots.len(), expected.len(), "roots: {roots:?}");
+                for (root, expected) in roots.iter().zip(expected) {
+                    assert!(approx_eq(*root, *expected), "{root} != {expected}");
+                }
+            }
+            other => panic!("expected roots, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn solves_simple_rational_equations() {
+        assert_roots(solve_univariate(&expr("1 / x - 2"), "x", &empty()), &[0.5]);
+        assert_roots(
+            solve_univariate(&expr("x / (x + 1) - 2"), "x", &empty()),
+            &[-2.0],
+        );
+    }
+
+    #[test]
+    fn cancelling_numerator_and_denominator() {
+        assert_eq!(
+            solve_univariate(&expr("x / x - 2"), "x", &empty()),
+            UnivariateOutcome::NoRealRoots
+        );
+        assert_eq!(
+            solve_univariate(&expr("x / x - 1"), "x", &empty()),
+            UnivariateOutcome::Identity
+        );
+    }
+
+    #[test]
+    fn divides_by_zero() {
+        assert_eq!(
+            solve_univariate(&expr("1 / 0 - 2"), "x", &empty()),
+            UnivariateOutcome::DivisionByZero
+        );
+    }
+
+    #[test]
+    fn constant_numerator_has_no_roots() {
+        assert_eq!(
+            solve_univariate(&expr("1 / (x - 1)"), "x", &empty()),
+            UnivariateOutcome::NoRealRoots
+        );
+    }
+
+    #[test]
+    fn supports_a_quadratic_numerator() {
+        assert_roots(
+            solve_univariate(&expr("(x^2 - 4) / (x - 1)"), "x", &empty()),
+            &[2.0, -2.0],
+        );
+    }
+
+    #[test]
+    fn rejects_an_out_of_scope_denominator() {
+        assert_eq!(
+            solve_univariate(&expr("1 / (x^2 + 1) - 2"), "x", &empty()),
+            UnivariateOutcome::Unsolved
+        );
+    }
+
+    #[test]
+    fn filters_domain_rejected_roots() {
+        assert_roots(
+            solve_univariate(&expr("(x^2 - 1) / (x - 1)"), "x", &empty()),
+            &[-1.0],
+        );
+    }
+
+    #[test]
+    fn supports_negative_integer_powers() {
+        assert_roots(solve_univariate(&expr("x^-1 - 2"), "x", &empty()), &[0.5]);
     }
 }
