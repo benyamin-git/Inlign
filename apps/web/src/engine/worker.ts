@@ -1,6 +1,6 @@
 import type * as EngineModule from "@inlign/engine-wasm";
 
-import type { EngineRequest, EngineResponse } from "./protocol.ts";
+import type { EngineRequest, EngineResponse, LineEvaluation } from "./protocol.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -16,7 +16,13 @@ async function respond(request: EngineRequest): Promise<EngineResponse> {
     return { id: request.id, type: "version", version: engine.version() };
   }
 
-  return { id: request.id, error: `Unknown request type: ${String(request.type)}` };
+  if (request.type === "evaluate") {
+    const lines = engine.evaluate(request.lines) as LineEvaluation[];
+    return { id: request.id, type: "evaluate", lines };
+  }
+
+  const unknown = request as { id: number; type: string };
+  return { id: unknown.id, error: `Unknown request type: ${unknown.type}` };
 }
 
 self.addEventListener("message", (event: MessageEvent<EngineRequest>) => {

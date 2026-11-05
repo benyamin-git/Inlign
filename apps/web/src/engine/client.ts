@@ -1,7 +1,13 @@
-import type { EngineRequest, EngineResponse } from "./protocol.ts";
+import type { EngineRequest, EngineResponse, LineEvaluation, LineInput } from "./protocol.ts";
+
+type EngineRequestPayload = { type: "version" } | { type: "evaluate"; lines: LineInput[] };
+
+type EngineSuccessResponse =
+  | { id: number; type: "version"; version: string }
+  | { id: number; type: "evaluate"; lines: LineEvaluation[] };
 
 type PendingRequest = {
-  resolve: (version: string) => void;
+  resolve: (response: EngineSuccessResponse) => void;
   reject: (reason: Error) => void;
 };
 
@@ -20,13 +26,20 @@ export class EngineClient {
   }
 
   version(): Promise<string> {
-    const id = this.#nextRequestId;
-    this.#nextRequestId += 1;
-    const request: EngineRequest = { id, type: "version" };
+    return this.#request({ type: "version" }).then((response) => {
+      if (response.type !== "version") {
+        throw new Error("Unexpected engine response");
+      }
+      return response.version;
+    });
+  }
 
-    return new Promise<string>((resolve, reject) => {
-      this.#pending.set(id, { resolve, reject });
-      this.#worker.postMessage(request);
+  evaluate(lines: LineInput[]): Promise<LineEvaluation[]> {
+    return this.#request({ type: "evaluate", lines }).then((response) => {
+      if (response.type !== "evaluate") {
+        throw new Error("Unexpected engine response");
+      }
+      return response.lines;
     });
   }
 
@@ -38,6 +51,17 @@ export class EngineClient {
       reject(error);
     }
     this.#pending.clear();
+  }
+
+  #request(payload: EngineRequestPayload): Promise<EngineSuccessResponse> {
+    const id = this.#nextRequestId;
+    this.#nextRequestId += 1;
+    const request: EngineRequest = { id, ...payload };
+
+    return new Promise<EngineSuccessResponse>((resolve, reject) => {
+      this.#pending.set(id, { resolve, reject });
+      this.#worker.postMessage(request);
+    });
   }
 
   #settle(response: EngineResponse): void {
@@ -52,6 +76,6 @@ export class EngineClient {
       return;
     }
 
-    pending.resolve(response.version);
+    pending.resolve(response);
   }
 }
