@@ -4,12 +4,13 @@ Inlign is a local-first notepad for drafting math, built as a React PWA with a
 Rust math engine compiled to WebAssembly. The repository is a pnpm workspace
 plus a Cargo workspace.
 
-The foundation and card notepad milestone is complete: notebooks, one-line card
-editing, autosave, reordering, themes and accents, `.inlign` transfer, JSON
-backup and restore, the installable PWA, and basic math token highlighting are
-implemented and tested. Math evaluation is still to come. `EngineClient` is
-unit-tested; its module worker is implemented but not directly unit-tested. The
-UI does not instantiate either yet; only `version()` crosses into Rust.
+The foundation, card notepad and variable engine milestones are complete:
+notebooks, one-line card editing, autosave, reordering, themes and accents,
+`.inlign` transfer, JSON backup and restore, the installable PWA, math token
+highlighting, and live math evaluation are implemented and tested. Every
+non-empty line is an equation. An app-level `EngineClient` and its module worker
+are wired; the UI never imports the WASM package directly. Annotations are
+derived from engine responses and never stored.
 
 ## Requirements
 
@@ -46,6 +47,7 @@ Run from the repository root.
 | `cargo fmt --check --all` | Check Rust formatting across the workspace. |
 | `cargo clippy --workspace --all-targets -- -D warnings` | Lint all Rust targets, denying warnings. |
 | `cargo test --workspace` | Run the Rust tests natively. |
+| `cargo test --release -p inlign-engine --test performance` | Run the 500-line release performance guard; it asserts under 50 ms. |
 
 `dev`, `build`, `typecheck`, `lint`, `test` and `test:watch` all run
 `build:wasm` first, because the web app imports the generated package and
@@ -63,16 +65,20 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
 ## Architecture boundaries
 
 - **Rust core is pure.** `crates/engine` has no `wasm-bindgen`, DOM, React or
-  storage dependencies. It must stay testable with plain `cargo test`.
+  storage dependencies. It must stay testable with plain `cargo test`. Its
+  modules are `lexer`, `parser`, `ast`, `solver`, `format` and `evaluate`;
+  `evaluate()` walks the lines in order.
 - **WASM facade is thin.** `crates/engine-wasm` only exposes the core across
-  `#[wasm_bindgen]`. No logic belongs there.
-- **Engine client and worker are implemented, not wired.** The UI never imports
-  `@inlign/engine-wasm` directly. `src/engine/client.ts` owns a request-id and
-  promise map; `src/engine/worker.ts` answers typed requests. The client is
-  unit-tested with a stubbed `Worker`; the worker is implemented but not
-  directly unit-tested. The UI does not create an `EngineClient` in this
-  milestone. The worker never throws across the boundary; failures come back as
-  `{ id, error }`. Only `version()` is exposed across the WASM facade.
+  `#[wasm_bindgen]` with serde DTOs. It exports `version()` and `evaluate()`;
+  no solver or formatting logic belongs there.
+- **The engine is wired at app level.** `App` creates one `EngineClient` in an
+  effect. `useEngineEvaluation` debounces notebook lines by 120 ms, sends a
+  stateless `evaluate` request to the module worker, and maps results by line
+  id. The UI never imports `@inlign/engine-wasm` directly. Annotations are
+  derived from responses and never stored. The client is unit-tested with a
+  stubbed `Worker`; the worker is implemented but not directly unit-tested.
+  The worker never throws across the boundary; failures come back as
+  `{ id, error }`.
 - **The worker is an ES module.** `worker.format: "es"` in
   `apps/web/vite.config.ts` is required because the generated WASM module uses
   top-level await. wasm-bindgen 0.2.130's bundler output has no `init`
@@ -82,8 +88,9 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
   after an await would drop early requests.
 - **Math highlighting is presentation only.** `src/features/editor/mathSyntax.ts`
   tokenizes numbers, operators and call names for a color layer behind the
-  transparent textarea. It does not parse, evaluate, check or use the engine.
-  The textarea still owns the editable text, selection and undo.
+  transparent textarea. It adds color only; the engine does the parsing,
+  solving and checking. The textarea still owns the editable text, selection
+  and undo.
 - **Data layer is implemented.** Notebooks and settings go through Dexie
   repositories in `src/data/` and React hooks such as `useNotebooks`,
   `useSettings` and `useTransfer`. IndexedDB is the store. There is no global
@@ -99,9 +106,23 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
 
 - One logical line per card. A line is `{ id: string; text: string }`; a
   notebook always has at least one line.
-- Math is highlighting only: no parsing, classification, solving, checking,
-  results or conflicts. The highlighter is a TypeScript tokenizer in the editor;
-  only `version()` crosses into Rust.
+- Every non-empty line is an equation with exactly one top-level `=`. Prose
+  and bare expressions are invalid. Incomplete syntax is not an error; empty
+  lines are ignored. Evaluation is prefix-only: a suggestion uses values known
+  before the line, and a later value never fills an earlier line. The first
+  error stops evaluation; later lines are skipped and dimmed. A conflicting
+  assignment keeps the first value.
+- One set-valued variable only. The solver covers linear equations, quadratics,
+  pure powers with a known exponent and simple rational equations. Coupled
+  nonlinear systems, a second set, unknown exponents, functions, units,
+  comparisons, square brackets, `%` and implicit multiplication stay unsolved
+  or invalid.
+- Suggestions appear only on the focused card with the caret at the end and an
+  empty right-hand side. Tab inserts only the missing suffix; Escape dismisses
+  the suggestion. Annotations are derived from engine responses and never
+  stored.
+- The highlighter is presentation only: it adds color and does not parse or
+  evaluate.
 - No raw hex in components. Use semantic theme tokens.
 - No network requests for app data or third-party services after load, no
   accounts, no telemetry. English strings are hard-coded; there is no i18n layer.
@@ -122,6 +143,10 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
 
 ## Design record
 
+- Math-only product direction: every non-empty line is an equation; prose is
+  invalid
+- Annotation roles: suggestions and skipped lines use `on-surface-variant`;
+  errors use `loss` text, border and outline
 - Palette: six accents, default blue
 - Themes: Light / Dark / OLED; first run follows `prefers-color-scheme`; OLED is
   opt-in only

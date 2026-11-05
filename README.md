@@ -1,26 +1,42 @@
 # Inlign
 
-A local-first notepad for drafting math, with one line per card. The document is
-plain text; a Rust engine compiled to WebAssembly will compute and cross-check
-values in place.
+A local-first notepad for drafting math, with one line per card. Every
+non-empty line is an equation. A Rust engine compiled to WebAssembly computes
+and cross-checks values in place.
 
-> The foundation and card notepad milestone is complete. Notebooks, one-line
-> card editing, autosave, reordering, themes and accents, `.inlign` transfer,
-> JSON backup and restore, the installable PWA, and basic math token
-> highlighting work. Math evaluation is still to come. The previous
-> implementation is archived at
+> The foundation, card notepad and variable engine milestones are complete.
+> Notebooks, one-line card editing, autosave, reordering, themes and accents,
+> `.inlign` transfer, JSON backup and restore, the installable PWA, math token
+> highlighting, and live math evaluation work. Grey suggestions, inline errors
+> and dimmed lines after a stopped evaluation are part of the engine. The
+> previous implementation is archived at
 > [benyamin-git/Inlign-legacy](https://github.com/benyamin-git/Inlign-legacy).
 
 ## What works
 
 - Notebooks and settings persist in IndexedDB through Dexie repositories and
   React hooks. There is no global store and no URL router.
+- Every non-empty line is an equation. The app sends the notebook to a Rust
+  engine in a module worker after a 120 ms debounce, through the app-level
+  `EngineClient` and `useEngineEvaluation`. The engine walks the lines in order
+  and returns `ok`, `empty`, `incomplete`, `error` or `skipped` for each.
+- Evaluation is prefix-only. A focused line with an empty right-hand side shows
+  one grey suggestion when its value is already known. Incomplete syntax and
+  valid unsolved lines are not errors and stay unmarked. Tab inserts only the
+  missing value and Escape dismisses the suggestion. The first error shows red
+  inline text and a red card border, and later lines are dimmed and skipped
+  until the error is fixed. A conflicting assignment keeps the first value.
+- The solver handles linear equations, quadratics, pure powers and simple
+  rational equations, including one set-valued variable at a time. Symmetric
+  roots display as `±v`; non-symmetric sets display descending and Tab inserts
+  the largest value. Coupled nonlinear systems, a second set and unknown
+  exponents are valid but unsolved.
 - The editor renders one logical line per card: Enter splits, Backspace and
   Delete merge, pasted newlines become separate cards, and cards can be dragged
   by their grip or moved with the keyboard.
 - Numbers, operators and function-call names are highlighted behind the card
-  text. The tokenizer is presentation only: it adds color and nothing is parsed
-  or evaluated.
+  text. The highlighter is a presentation tokenizer: it adds color only, while
+  the engine parses, solves and checks the equations.
 - Text edits autosave after a 400 ms pause and flush on window blur, `pagehide`
   and when the page is hidden, so a reload or a notebook switch keeps the latest
   lines.
@@ -37,19 +53,19 @@ values in place.
   ids), Merge (update matching ids, add missing, keep the rest) or Replace all.
   Replace starts a safety-backup download before asking for a second
   confirmation, and every mode validates the file before writing.
-- The Rust core builds to `@inlign/engine-wasm`; `EngineClient` is unit-tested
-  and its module worker is implemented but not directly unit-tested. The UI does
-  not instantiate either in this milestone. Only `version()` crosses into Rust
-  and returns `0.1.0`.
+- The math engine is a pure Rust crate with a thin WASM facade. The UI never
+  imports the generated package directly; it goes through the typed worker
+  protocol, and annotations are derived from responses rather than stored with
+  the notebook.
 - Vitest unit tests, Playwright browser tests and cargo tests cover the
-  workspace.
+  workspace, including the engine's suggestions, errors and accessibility.
 
 ## Why it exists
 
 Calculators work one expression at a time; spreadsheets work in cells. Inlign is
-for drafting a solution the way you would on paper — prose, values and formulas
-— while every value is computed in place and checked against the rest of the
-document.
+for drafting a calculation line by line: one equation per card, with every value
+computed in place and checked against the equations already entered. Prose is
+not part of the document; every non-empty line is math.
 
 ## Prerequisites
 
@@ -136,11 +152,16 @@ Run these from the repository root.
 | `cargo fmt --check --all` | Check Rust formatting. |
 | `cargo clippy --workspace --all-targets -- -D warnings` | Lint Rust, denying warnings. |
 | `cargo test --workspace` | Run the Rust tests natively. |
+| `cargo test --release -p inlign-engine --test performance` | Run the 500-line release performance guard; it asserts under 50 ms. |
 
 `dev`, `build`, `typecheck`, `lint`, `test` and `test:watch` all run
 `build:wasm` first because `packages/engine-wasm/pkg/` is generated and
 git-ignored. `test:e2e` runs `pnpm build` first. `format` and `format:check`
 cover the web app only, not `docs/`.
+
+The performance guard prints the 500-line evaluation time. Its 50 ms assertion
+only runs in a release build; `cargo test --workspace` covers correctness in a
+debug build.
 
 `pnpm generate:accents` derives every accent role for Light, Dark and OLED
 from the house OKLCH seeds and writes `apps/web/src/theme/accents.css`. That
@@ -154,8 +175,8 @@ apps/web/                   React 19 + Vite 8 PWA
   src/app/                  app shell and empty state
   src/data/                 Dexie models, repositories, transfer and backup
   src/engine/               EngineClient, typed protocol, module worker
-  src/features/editor/      card editor, token highlighting, line operations,
-                            autosave and drag
+  src/features/editor/      card editor, engine annotations, token highlighting,
+                            line operations, autosave and drag
   src/features/notebooks/   sidebar, notebook hooks and ordering
   src/features/settings/    theme, accent and settings sheet
   src/features/transfer/    `.inlign` and JSON import/export dialogs
@@ -166,7 +187,14 @@ apps/web/                   React 19 + Vite 8 PWA
   e2e/                      Playwright tests
   public/                   favicon and PWA icons
 crates/engine/              pure Rust core, no wasm-bindgen
-crates/engine-wasm/         thin #[wasm_bindgen] facade
+  src/lexer.rs              tokenization
+  src/parser.rs             expressions and the single top-level `=`
+  src/ast.rs                expression and equation types
+  src/solver.rs             linear, quadratic, power and rational solving
+  src/format.rs             number formatting, tolerance and suggestions
+  src/evaluate.rs           line-by-line prefix evaluation
+  tests/performance.rs      500-line release budget
+crates/engine-wasm/         thin #[wasm_bindgen] serde facade
 packages/engine-wasm/       committed package.json shim; generated pkg/ ignored
 scripts/build-wasm.mjs        wasm-pack invocation used by the root scripts
 scripts/generate-accents.mjs  OKLCH accent generator for accents.css
@@ -177,10 +205,10 @@ docs/superpowers/           approved spec and implementation plan
 ## PWA and offline
 
 The production build registers an auto-updating service worker and precaches
-the app shell: HTML, JavaScript, CSS, bundled JetBrains Mono fonts, icons and
-the manifest. No `.wasm` asset is emitted because the UI does not load the
-engine yet; the precache glob includes `wasm` for when it does. After one
-successful load, the app reloads offline from the precache and IndexedDB.
+the app shell: HTML, JavaScript, CSS, bundled JetBrains Mono fonts, icons, the
+manifest, and the compiled WebAssembly module. The math worker loads the WASM
+asset at runtime. After one successful load, the app reloads offline from the
+precache and IndexedDB.
 
 PWA install and service-worker registration require a secure context:
 `localhost` or HTTPS. The LAN address `http://<host>:7406` serves the app, but
@@ -210,6 +238,7 @@ pnpm build:wasm
 cargo fmt --check --all
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+cargo test --release -p inlign-engine --test performance -- --nocapture
 pnpm typecheck
 pnpm lint
 pnpm format:check
@@ -223,12 +252,26 @@ pnpm build
 
 ## Limitations
 
-- Math is highlighting only. Numbers, operators and call names are colored by a
-  TypeScript tokenizer; the engine exposes only `version()`, so there is no
-  parsing, solving, checking, results or conflicts.
+- The document is math-only. Every non-empty line must be an equation with
+  exactly one top-level `=`. Prose, bare expressions and a second `=` are
+  invalid. Incomplete syntax is not an error and does not stop evaluation.
+- The solver covers linear equations, quadratics, pure powers with a known
+  exponent and simple rational equations. It does not solve coupled nonlinear
+  systems, systems with more than one set-valued variable, or equations with an
+  unknown exponent. A valid equation outside that scope stays unmarked.
+- Suggestions are prefix-only: a value entered later never fills an earlier
+  incomplete line. Only one set-valued variable exists at a time; a set is not
+  propagated into a second variable.
+- Values format with at most 12 significant digits, negative zero formats as
+  `0`, and numeric equality uses a relative tolerance of `1e-9`. Precision and
+  tolerance are constants, not settings.
+- The engine produces numeric values only, with no symbolic algebra or
+  derived-form output.
+- Functions, constants, units, comparisons, square brackets, `%`, implicit
+  multiplication such as `2a`, and commas as input are not supported.
 - No structural undo; only the textarea's native undo exists.
-- The editor targets roughly 500 cards; that figure is a spec target, not a
-  measured benchmark, and there is no list virtualization.
+- The 500-line performance test must finish in under 50 ms in a release build;
+  the editor has no list virtualization.
 - iOS may evict IndexedDB storage, so keep `.inlign` or JSON backup exports of
   anything important.
 
