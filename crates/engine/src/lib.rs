@@ -5,9 +5,11 @@
 
 pub mod ast;
 pub mod lexer;
+pub mod parser;
 
 pub use ast::{BinOp, Equation, Expr};
 pub use lexer::{LexError, Token, TokenKind, lex};
+pub use parser::{IncompleteLine, ParseError, ParseOutcome, parse};
 
 /// Returns the crate version.
 pub fn version() -> &'static str {
