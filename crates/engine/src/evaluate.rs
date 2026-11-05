@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ast::{BinOp, Equation, Expr};
-use crate::format::{Suggestion, approx_eq, format_value, suggestion_for};
+use crate::format::{Suggestion, approx_eq, format_set, format_value, suggestion_for};
 use crate::parser::{ParseOutcome, parse};
 use crate::solver::{
     AddOutcome, LinearForm, LinearSystem, LinearizeOutcome, UnivariateOutcome, linearize,
@@ -98,6 +98,7 @@ pub fn evaluate(lines: &[InputLine]) -> Vec<LineEvaluation> {
 #[derive(Debug, Clone, PartialEq)]
 enum Value {
     Single(f64),
+    Set(Vec<f64>),
 }
 
 struct Constraint {
@@ -123,9 +124,9 @@ impl State {
     fn singles(&self) -> BTreeMap<String, f64> {
         self.values
             .iter()
-            .map(|(name, value)| {
-                let Value::Single(value) = value;
-                (name.clone(), *value)
+            .filter_map(|(name, value)| match value {
+                Value::Single(value) => Some((name.clone(), *value)),
+                Value::Set(_) => None,
             })
             .collect()
     }
@@ -137,16 +138,60 @@ impl State {
         }
     }
 
-    fn refresh(&mut self) {
-        self.values = self
-            .linear
-            .values()
-            .into_iter()
-            .map(|(name, value)| (name, Value::Single(value)))
-            .collect();
+    fn set(&self, name: &str) -> Option<&[f64]> {
+        match self.values.get(name) {
+            Some(Value::Set(values)) => Some(values),
+            _ => None,
+        }
+    }
+
+    fn is_set(&self, name: &str) -> bool {
+        matches!(self.values.get(name), Some(Value::Set(_)))
+    }
+
+    fn set_entry(&self) -> Option<(&str, &[f64])> {
+        self.values.iter().find_map(|(name, value)| match value {
+            Value::Set(values) => Some((name.as_str(), values.as_slice())),
+            Value::Single(_) => None,
+        })
+    }
+
+    fn refresh(&mut self) -> Result<(), String> {
+        let determined = self.linear.values();
+        let mut reconciled = BTreeMap::new();
+
+        for (name, value) in &self.values {
+            let Value::Set(set) = value else {
+                continue;
+            };
+            match determined.get(name) {
+                Some(determined_value) => {
+                    if set
+                        .iter()
+                        .any(|candidate| approx_eq(*candidate, *determined_value))
+                    {
+                        reconciled.insert(name.clone(), Value::Single(*determined_value));
+                    } else {
+                        return Err(format!("{name} = {}", format_set(set)));
+                    }
+                }
+                None => {
+                    reconciled.insert(name.clone(), Value::Set(set.clone()));
+                }
+            }
+        }
+
+        for (name, value) in determined {
+            reconciled.entry(name).or_insert(Value::Single(value));
+        }
+        self.values = reconciled;
+        Ok(())
     }
 
     fn suggestion(&self, name: &str) -> Option<Suggestion> {
+        if let Some((_, set)) = self.set_entry().filter(|(set_name, _)| *set_name == name) {
+            return suggestion_for(set);
+        }
         match self.values.get(name) {
             Some(Value::Single(value)) => suggestion_for(&[*value]),
             _ => None,
@@ -231,39 +276,82 @@ impl State {
                     ApplyOutcome::Error("false".to_owned())
                 }
             }
-            LinearizeOutcome::Linear(form) => match self.linear.add(form) {
-                AddOutcome::Consistent => {
-                    self.refresh();
-                    ApplyOutcome::Applied
-                }
-                AddOutcome::Inconsistent => ApplyOutcome::Error("false".to_owned()),
-            },
+            LinearizeOutcome::Linear(form) => self.apply_linear(form),
             LinearizeOutcome::Nonlinear => self.apply_nonlinear(equation, &difference),
-            LinearizeOutcome::DivisionByZero | LinearizeOutcome::NonFinite => {
-                ApplyOutcome::Error("invalid".to_owned())
-            }
+            LinearizeOutcome::DivisionByZero => ApplyOutcome::Error("÷ 0".to_owned()),
+            LinearizeOutcome::NonFinite => ApplyOutcome::Error("invalid".to_owned()),
         }
     }
 
-    fn direct_assignment(&self, equation: &Equation) -> Option<ApplyOutcome> {
-        self.direct_side(&equation.left, &equation.right)
-            .or_else(|| self.direct_side(&equation.right, &equation.left))
+    fn apply_linear(&mut self, form: LinearForm) -> ApplyOutcome {
+        let set_name = form.coeffs.keys().find(|name| self.is_set(name)).cloned();
+
+        match set_name {
+            Some(_) if form.coeffs.len() > 1 => ApplyOutcome::Pending,
+            Some(name) => {
+                let coefficient = form.coeffs[&name];
+                let value = -form.constant / coefficient;
+                self.narrow_set(&name, value, form)
+            }
+            None => match self.linear.add(form) {
+                AddOutcome::Consistent => match self.refresh() {
+                    Ok(()) => ApplyOutcome::Applied,
+                    Err(error) => ApplyOutcome::Error(error),
+                },
+                AddOutcome::Inconsistent => ApplyOutcome::Error("false".to_owned()),
+            },
+        }
     }
 
-    fn direct_side(&self, target: &Expr, other: &Expr) -> Option<ApplyOutcome> {
+    fn narrow_set(&mut self, name: &str, value: f64, form: LinearForm) -> ApplyOutcome {
+        let Some(set) = self.set(name) else {
+            return ApplyOutcome::Error("false".to_owned());
+        };
+        if !set.iter().any(|candidate| approx_eq(*candidate, value)) {
+            return ApplyOutcome::Error(format!("{name} = {}", format_set(set)));
+        }
+
+        self.values.insert(name.to_owned(), Value::Single(value));
+        match self.linear.add(form) {
+            AddOutcome::Consistent => {}
+            AddOutcome::Inconsistent => return ApplyOutcome::Error("false".to_owned()),
+        }
+        match self.refresh() {
+            Ok(()) => ApplyOutcome::Applied,
+            Err(error) => ApplyOutcome::Error(error),
+        }
+    }
+
+    fn direct_assignment(&mut self, equation: &Equation) -> Option<ApplyOutcome> {
+        if let Some(result) = self.direct_side(&equation.left, &equation.right) {
+            return Some(result);
+        }
+        self.direct_side(&equation.right, &equation.left)
+    }
+
+    fn direct_side(&mut self, target: &Expr, other: &Expr) -> Option<ApplyOutcome> {
         let Expr::Var(name) = target else {
             return None;
         };
-        let known = self.known(name)?;
         let value = self.evaluate_side(other)?;
-        if approx_eq(value, known) {
-            Some(ApplyOutcome::Applied)
-        } else {
-            Some(ApplyOutcome::Error(format!(
-                "{name} = {}",
-                format_value(known)
-            )))
+
+        if let Some(known) = self.known(name) {
+            return Some(if approx_eq(value, known) {
+                ApplyOutcome::Applied
+            } else {
+                ApplyOutcome::Error(format!("{name} = {}", format_value(known)))
+            });
         }
+
+        if self.is_set(name) {
+            let form = LinearForm {
+                coeffs: BTreeMap::from([(name.clone(), 1.0)]),
+                constant: -value,
+            };
+            return Some(self.narrow_set(name, value, form));
+        }
+
+        None
     }
 
     fn evaluate_side(&self, expr: &Expr) -> Option<f64> {
@@ -274,6 +362,10 @@ impl State {
     }
 
     fn apply_nonlinear(&mut self, equation: &Equation, difference: &Expr) -> ApplyOutcome {
+        if mentions_set(equation, self) {
+            return ApplyOutcome::Pending;
+        }
+
         let unknowns = unknown_variables(equation, &self.values);
         if unknowns.len() != 1 {
             return ApplyOutcome::Pending;
@@ -281,23 +373,32 @@ impl State {
         let variable = unknowns.into_iter().next().expect("one unknown");
 
         match solve_univariate(difference, &variable, &self.singles()) {
-            UnivariateOutcome::Roots(roots) => match roots.as_slice() {
-                [root] => {
-                    let form = LinearForm {
-                        coeffs: BTreeMap::from([(variable, 1.0)]),
-                        constant: -*root,
-                    };
-                    match self.linear.add(form) {
-                        AddOutcome::Consistent => {
-                            self.refresh();
-                            ApplyOutcome::Applied
+            UnivariateOutcome::Roots(roots) => {
+                let roots = normalized_roots(roots);
+                match roots.as_slice() {
+                    [] => ApplyOutcome::Error("false".to_owned()),
+                    [root] => {
+                        let form = LinearForm {
+                            coeffs: BTreeMap::from([(variable, 1.0)]),
+                            constant: -*root,
+                        };
+                        match self.linear.add(form) {
+                            AddOutcome::Consistent => match self.refresh() {
+                                Ok(()) => ApplyOutcome::Applied,
+                                Err(error) => ApplyOutcome::Error(error),
+                            },
+                            AddOutcome::Inconsistent => ApplyOutcome::Error("false".to_owned()),
                         }
-                        AddOutcome::Inconsistent => ApplyOutcome::Error("false".to_owned()),
+                    }
+                    _ => {
+                        if self.set_entry().is_some() {
+                            return ApplyOutcome::Pending;
+                        }
+                        self.values.insert(variable, Value::Set(roots));
+                        ApplyOutcome::Applied
                     }
                 }
-                [] => ApplyOutcome::Error("false".to_owned()),
-                _ => ApplyOutcome::Pending,
-            },
+            }
             UnivariateOutcome::NoRealRoots => ApplyOutcome::Error("false".to_owned()),
             UnivariateOutcome::Identity => ApplyOutcome::Applied,
             UnivariateOutcome::Unsolved => ApplyOutcome::Pending,
@@ -313,6 +414,34 @@ fn difference(equation: &Equation) -> Expr {
         left: Box::new(equation.left.clone()),
         right: Box::new(equation.right.clone()),
     }
+}
+
+fn mentions_set(equation: &Equation, state: &State) -> bool {
+    expression_mentions_set(&equation.left, state)
+        || expression_mentions_set(&equation.right, state)
+}
+
+fn expression_mentions_set(expr: &Expr, state: &State) -> bool {
+    match expr {
+        Expr::Number(_) => false,
+        Expr::Var(name) => state.is_set(name),
+        Expr::Neg(inner) | Expr::PlusMinus(inner) => expression_mentions_set(inner, state),
+        Expr::Binary { left, right, .. } => {
+            expression_mentions_set(left, state) || expression_mentions_set(right, state)
+        }
+    }
+}
+
+fn normalized_roots(values: Vec<f64>) -> Vec<f64> {
+    let mut sorted = values;
+    sorted.sort_by(|a, b| b.total_cmp(a));
+    let mut result: Vec<f64> = Vec::new();
+    for value in sorted {
+        if result.last().is_none_or(|last| !approx_eq(*last, value)) {
+            result.push(value);
+        }
+    }
+    result
 }
 
 fn unknown_variables(equation: &Equation, values: &BTreeMap<String, Value>) -> BTreeSet<String> {
@@ -554,7 +683,7 @@ mod tests {
     }
 
     #[test]
-    fn multiple_roots_are_deferred() {
+    fn multiple_roots_create_a_symmetric_set() {
         let results = evaluate(&input(&["x^2 = 4", "x ="]));
 
         assert_eq!(
@@ -562,7 +691,7 @@ mod tests {
             vec![LineStatus::Ok, LineStatus::Incomplete]
         );
         assert_eq!(results[0].error, None);
-        assert_eq!(results[1].suggestion, None);
+        assert_eq!(results[1].suggestion, suggestion("±2", "±2"));
     }
 
     #[test]
@@ -574,7 +703,7 @@ mod tests {
 
     #[test]
     fn pending_conflict_is_attributed_to_the_current_line() {
-        let results = evaluate(&input(&["x^2 = 4", "x = 3"]));
+        let results = evaluate(&input(&["x^2 + y^2 = 0", "x = 1"]));
 
         assert_eq!(results[0].status, LineStatus::Ok);
         assert_eq!(results[0].error, None);
@@ -590,5 +719,208 @@ mod tests {
             vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Ok]
         );
         assert_error(&results[3], "f = 10");
+    }
+}
+
+#[cfg(test)]
+mod sets {
+    use super::*;
+    use crate::format::Suggestion;
+
+    fn input(texts: &[&str]) -> Vec<InputLine> {
+        texts
+            .iter()
+            .enumerate()
+            .map(|(index, text)| InputLine {
+                id: format!("l{index}"),
+                text: (*text).to_owned(),
+            })
+            .collect()
+    }
+
+    fn statuses(results: &[LineEvaluation]) -> Vec<LineStatus> {
+        results.iter().map(|result| result.status).collect()
+    }
+
+    fn suggestion(display: &str, insert: &str) -> Option<Suggestion> {
+        Some(Suggestion {
+            display: display.to_owned(),
+            insert: insert.to_owned(),
+        })
+    }
+
+    fn assert_error(result: &LineEvaluation, message: &str) {
+        assert_eq!(result.status, LineStatus::Error);
+        assert_eq!(result.error.as_deref(), Some(message));
+        assert_eq!(result.suggestion, None);
+    }
+
+    #[test]
+    fn creates_a_symmetric_set_and_suggests_it() {
+        let results = evaluate(&input(&["x^2 = 4", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Incomplete]
+        );
+        assert_eq!(results[1].suggestion, suggestion("±2", "±2"));
+    }
+
+    #[test]
+    fn matching_assignment_narrows_the_set() {
+        let results = evaluate(&input(&["x^2 = 4", "x = 2", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[2].suggestion, suggestion("2", "2"));
+    }
+
+    #[test]
+    fn outside_assignment_conflicts_showing_the_set() {
+        let results = evaluate(&input(&["x^2 = 4", "x = 3"]));
+
+        assert_eq!(results[0].status, LineStatus::Ok);
+        assert_error(&results[1], "x = ±2");
+    }
+
+    #[test]
+    fn duplicate_roots_become_a_single_value() {
+        let results = evaluate(&input(&["x^2 = 0", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Incomplete]
+        );
+        assert_eq!(results[1].suggestion, suggestion("0", "0"));
+    }
+
+    #[test]
+    fn non_symmetric_set_inserts_the_largest() {
+        let results = evaluate(&input(&["x^2 + x = 0", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Incomplete]
+        );
+        assert_eq!(results[1].suggestion, suggestion("0, -1", "0"));
+    }
+
+    #[test]
+    fn a_second_set_waits_for_the_slot() {
+        let results = evaluate(&input(&[
+            "x^2 = 4", "y^2 = 9", "x =", "y =", "x = 2", "y =",
+        ]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![
+                LineStatus::Ok,
+                LineStatus::Ok,
+                LineStatus::Incomplete,
+                LineStatus::Incomplete,
+                LineStatus::Ok,
+                LineStatus::Incomplete,
+            ]
+        );
+        assert_eq!(results[2].suggestion, suggestion("±2", "±2"));
+        assert_eq!(results[3].suggestion, None);
+        assert_eq!(results[5].suggestion, suggestion("±3", "±3"));
+    }
+
+    #[test]
+    fn a_set_does_not_propagate_through_a_formula() {
+        let results = evaluate(&input(&["x^2 = 4", "y = x + 1", "y ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[2].suggestion, None);
+    }
+
+    #[test]
+    fn a_pending_formula_narrows_after_the_set_value() {
+        let results = evaluate(&input(&["x^2 = 4", "y = x + 1", "y =", "x = 2", "y ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![
+                LineStatus::Ok,
+                LineStatus::Ok,
+                LineStatus::Incomplete,
+                LineStatus::Ok,
+                LineStatus::Incomplete,
+            ]
+        );
+        assert_eq!(results[2].suggestion, None);
+        assert_eq!(results[4].suggestion, suggestion("3", "3"));
+    }
+
+    #[test]
+    fn a_linear_relation_narrows_a_set() {
+        let results = evaluate(&input(&["x^2 = 4", "x + 1 = 3", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[2].suggestion, suggestion("2", "2"));
+    }
+
+    #[test]
+    fn a_linear_relation_before_the_set_narrows_it() {
+        let results = evaluate(&input(&["x + y = 3", "x^2 = 4", "y = 1", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![
+                LineStatus::Ok,
+                LineStatus::Ok,
+                LineStatus::Ok,
+                LineStatus::Incomplete,
+            ]
+        );
+        assert_eq!(results[3].suggestion, suggestion("2", "2"));
+    }
+
+    #[test]
+    fn a_linear_relation_before_the_set_can_conflict() {
+        let results = evaluate(&input(&["x + y = 3", "x^2 = 4", "y = 4"]));
+
+        assert_eq!(results[0].status, LineStatus::Ok);
+        assert_eq!(results[1].status, LineStatus::Ok);
+        assert_error(&results[2], "x = ±2");
+    }
+
+    #[test]
+    fn a_non_linear_equation_involving_a_set_stays_pending() {
+        let results = evaluate(&input(&["x^2 = 4", "x^3 = 8", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[1].error, None);
+        assert_eq!(results[2].suggestion, suggestion("±2", "±2"));
+    }
+
+    #[test]
+    fn a_fixed_value_never_becomes_a_set() {
+        let results = evaluate(&input(&["x = 2", "x^2 = 4", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[2].suggestion, suggestion("2", "2"));
+    }
+
+    #[test]
+    fn a_non_symmetric_set_conflict_uses_set_notation() {
+        let results = evaluate(&input(&["x^2 + x = 0", "x = 2"]));
+
+        assert_error(&results[1], "x = 0, -1");
     }
 }
