@@ -4,10 +4,15 @@
 //! prefix evaluation. It has no WASM, DOM, React, storage or worker dependency.
 
 pub mod ast;
+pub mod format;
 pub mod lexer;
 pub mod parser;
 
 pub use ast::{BinOp, Equation, Expr};
+pub use format::{
+    RELATIVE_TOLERANCE, SIGNIFICANT_DIGITS, Suggestion, approx_eq, format_set, format_value,
+    suggestion_for,
+};
 pub use lexer::{LexError, Token, TokenKind, lex};
 pub use parser::{IncompleteLine, ParseError, ParseOutcome, parse};
 
