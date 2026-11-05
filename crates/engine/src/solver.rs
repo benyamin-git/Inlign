@@ -20,7 +20,7 @@ pub enum AddOutcome {
 }
 
 /// An incrementally maintained reduced row-echelon system.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct LinearSystem {
     vars: Vec<String>,
     index: BTreeMap<String, usize>,

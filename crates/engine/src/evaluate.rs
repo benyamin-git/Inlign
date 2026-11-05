@@ -66,17 +66,9 @@ pub fn evaluate(lines: &[InputLine]) -> Vec<LineEvaluation> {
                         .and_then(|name| state.suggestion(name));
                     (LineStatus::Incomplete, suggestion, None)
                 }
-                Ok(ParseOutcome::Equation(equation)) => match state.apply_equation(&equation) {
-                    ApplyOutcome::Applied => {
-                        state.record(&equation, true);
-                        state.finish_line()
-                    }
-                    ApplyOutcome::Pending => {
-                        state.record(&equation, false);
-                        state.add_pending(&equation);
-                        state.finish_line()
-                    }
-                    ApplyOutcome::Error(error) => (LineStatus::Error, None, Some(error)),
+                Ok(ParseOutcome::Equation(equation)) => match state.process_line(&equation) {
+                    Ok(()) => (LineStatus::Ok, None, None),
+                    Err(error) => (LineStatus::Error, None, Some(error)),
                 },
             }
         };
@@ -101,12 +93,13 @@ enum Value {
     Set(Vec<f64>),
 }
 
+#[derive(Clone)]
 struct Constraint {
     equation: Equation,
     applied: bool,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct State {
     values: BTreeMap<String, Value>,
     linear: LinearSystem,
@@ -118,6 +111,11 @@ enum ApplyOutcome {
     Applied,
     Pending,
     Error(String),
+}
+
+enum BranchOutcome {
+    Applied,
+    Blocked,
 }
 
 impl State {
@@ -221,11 +219,194 @@ impl State {
         }
     }
 
-    fn finish_line(&mut self) -> (LineStatus, Option<Suggestion>, Option<String>) {
-        match self.recheck_pending() {
-            Ok(()) => (LineStatus::Ok, None, None),
-            Err(error) => (LineStatus::Error, None, Some(error)),
+    fn process_line(&mut self, equation: &Equation) -> Result<(), String> {
+        let count = plus_minus_count(equation);
+        if count == 0 {
+            return self.apply_line(equation, true);
         }
+        if count > 2 {
+            return Ok(());
+        }
+        if !self.plus_minus_operands_are_single(equation) {
+            return self.apply_line(equation, true);
+        }
+        match self.apply_branches(equation, true)? {
+            BranchOutcome::Applied => {
+                self.record(equation, true);
+                Ok(())
+            }
+            BranchOutcome::Blocked => {
+                self.record(equation, false);
+                self.add_pending(equation);
+                Ok(())
+            }
+        }
+    }
+
+    fn plus_minus_operands_are_single(&self, equation: &Equation) -> bool {
+        let singles = self.singles();
+        expression_operands_are_single(&equation.left, &singles)
+            && expression_operands_are_single(&equation.right, &singles)
+    }
+
+    fn retry_equation(&mut self, equation: &Equation) -> ApplyOutcome {
+        let count = plus_minus_count(equation);
+        if count > 0 && count <= 2 && self.plus_minus_operands_are_single(equation) {
+            return match self.apply_branches(equation, false) {
+                Ok(BranchOutcome::Applied) => ApplyOutcome::Applied,
+                Ok(BranchOutcome::Blocked) => ApplyOutcome::Pending,
+                Err(error) => ApplyOutcome::Error(error),
+            };
+        }
+        self.apply_equation(equation)
+    }
+
+    fn apply_branches(
+        &mut self,
+        equation: &Equation,
+        recheck: bool,
+    ) -> Result<BranchOutcome, String> {
+        let branches = expand_plus_minus(equation, 2).expect("plus-minus count checked");
+        let mut survivors = Vec::new();
+        let mut errors = Vec::new();
+
+        for branch in &branches {
+            let mut trial = self.clone();
+            match trial.apply_line(branch, recheck) {
+                Ok(()) => survivors.push(trial),
+                Err(error) => errors.push(error),
+            }
+        }
+
+        if survivors.is_empty() {
+            return Err(self.branch_failure(equation, &errors));
+        }
+        if survivors.len() == 1 {
+            *self = survivors.pop().expect("one survivor");
+            return Ok(BranchOutcome::Applied);
+        }
+
+        self.merge_branches(&survivors, recheck)
+    }
+
+    fn merge_branches(
+        &mut self,
+        survivors: &[State],
+        recheck: bool,
+    ) -> Result<BranchOutcome, String> {
+        let mut changed = BTreeSet::new();
+        for branch in survivors {
+            for (name, value) in &branch.values {
+                if self.values.get(name) != Some(value) {
+                    changed.insert(name.clone());
+                }
+            }
+            for name in self.values.keys() {
+                if !branch.values.contains_key(name) {
+                    changed.insert(name.clone());
+                }
+            }
+        }
+
+        if changed.len() != 1 {
+            return Ok(BranchOutcome::Applied);
+        }
+
+        let name = changed.into_iter().next().expect("one changed variable");
+        let union = branch_union(survivors, &name);
+
+        match self.values.get(&name).cloned() {
+            Some(Value::Single(value)) => {
+                if union.iter().any(|candidate| approx_eq(*candidate, value)) {
+                    Ok(BranchOutcome::Applied)
+                } else {
+                    Err(format!("{name} = {}", format_value(value)))
+                }
+            }
+            Some(Value::Set(set)) => {
+                let intersection: Vec<f64> = set
+                    .iter()
+                    .copied()
+                    .filter(|value| union.iter().any(|candidate| approx_eq(*candidate, *value)))
+                    .collect();
+                if intersection.is_empty() {
+                    return Err(format!("{name} = {}", format_set(&set)));
+                }
+                if intersection.len() == 1 {
+                    self.set_single(&name, intersection[0])?;
+                } else {
+                    self.values.insert(name.clone(), Value::Set(intersection));
+                }
+                if recheck {
+                    self.recheck_pending()?;
+                }
+                Ok(BranchOutcome::Applied)
+            }
+            None => {
+                if union.len() > 1 {
+                    if self.set_entry().is_some() {
+                        return Ok(BranchOutcome::Blocked);
+                    }
+                    self.values.insert(name.clone(), Value::Set(union));
+                    if recheck {
+                        self.recheck_pending()?;
+                    }
+                    return Ok(BranchOutcome::Applied);
+                }
+                if union.len() == 1 {
+                    self.set_single(&name, union[0])?;
+                    if recheck {
+                        self.recheck_pending()?;
+                    }
+                }
+                Ok(BranchOutcome::Applied)
+            }
+        }
+    }
+
+    fn set_single(&mut self, name: &str, value: f64) -> Result<(), String> {
+        self.values.insert(name.to_owned(), Value::Single(value));
+        let form = LinearForm {
+            coeffs: BTreeMap::from([(name.to_owned(), 1.0)]),
+            constant: -value,
+        };
+        match self.linear.add(form) {
+            AddOutcome::Consistent => self.refresh(),
+            AddOutcome::Inconsistent => Err("false".to_owned()),
+        }
+    }
+
+    fn branch_failure(&self, equation: &Equation, errors: &[String]) -> String {
+        if let Some(first) = errors.first() {
+            let hard = first == "÷ 0" || first == "invalid";
+            if hard && errors.iter().all(|error| error == first) {
+                return first.clone();
+            }
+        }
+        if let Some(name) = direct_target(equation) {
+            if let Some(value) = self.known(name) {
+                return format!("{name} = {}", format_value(value));
+            }
+            if let Some(set) = self.set(name) {
+                return format!("{name} = {}", format_set(set));
+            }
+        }
+        "false".to_owned()
+    }
+
+    fn apply_line(&mut self, equation: &Equation, recheck: bool) -> Result<(), String> {
+        match self.apply_equation(equation) {
+            ApplyOutcome::Applied => self.record(equation, true),
+            ApplyOutcome::Pending => {
+                self.record(equation, false);
+                self.add_pending(equation);
+            }
+            ApplyOutcome::Error(error) => return Err(error),
+        }
+        if recheck {
+            self.recheck_pending()?;
+        }
+        Ok(())
     }
 
     fn recheck_pending(&mut self) -> Result<(), String> {
@@ -235,7 +416,7 @@ impl State {
             let mut remaining = Vec::with_capacity(pending.len());
 
             for equation in pending {
-                match self.apply_equation(&equation) {
+                match self.retry_equation(&equation) {
                     ApplyOutcome::Applied => self.mark_applied(&equation),
                     ApplyOutcome::Pending => remaining.push(equation),
                     ApplyOutcome::Error(error) => return Err(error),
@@ -442,6 +623,110 @@ fn normalized_roots(values: Vec<f64>) -> Vec<f64> {
         }
     }
     result
+}
+
+fn plus_minus_count(equation: &Equation) -> usize {
+    expression_plus_minus_count(&equation.left) + expression_plus_minus_count(&equation.right)
+}
+
+fn expression_plus_minus_count(expr: &Expr) -> usize {
+    match expr {
+        Expr::PlusMinus(inner) => 1 + expression_plus_minus_count(inner),
+        Expr::Neg(inner) => expression_plus_minus_count(inner),
+        Expr::Binary { left, right, .. } => {
+            expression_plus_minus_count(left) + expression_plus_minus_count(right)
+        }
+        Expr::Number(_) | Expr::Var(_) => 0,
+    }
+}
+
+fn expand_plus_minus(equation: &Equation, limit: usize) -> Option<Vec<Equation>> {
+    if plus_minus_count(equation) > limit {
+        return None;
+    }
+
+    let left_branches = expand_expression(&equation.left);
+    let right_branches = expand_expression(&equation.right);
+    let mut equations = Vec::with_capacity(left_branches.len() * right_branches.len());
+    for left in &left_branches {
+        for right in &right_branches {
+            equations.push(Equation {
+                left: left.clone(),
+                right: right.clone(),
+            });
+        }
+    }
+    Some(equations)
+}
+
+fn expand_expression(expr: &Expr) -> Vec<Expr> {
+    match expr {
+        Expr::PlusMinus(inner) => {
+            let mut branches = Vec::new();
+            for branch in expand_expression(inner) {
+                branches.push(branch.clone());
+                branches.push(Expr::Neg(Box::new(branch)));
+            }
+            branches
+        }
+        Expr::Neg(inner) => expand_expression(inner)
+            .into_iter()
+            .map(|branch| Expr::Neg(Box::new(branch)))
+            .collect(),
+        Expr::Binary { op, left, right } => {
+            let left_branches = expand_expression(left);
+            let right_branches = expand_expression(right);
+            let mut branches = Vec::new();
+            for left in &left_branches {
+                for right in &right_branches {
+                    branches.push(Expr::Binary {
+                        op: *op,
+                        left: Box::new(left.clone()),
+                        right: Box::new(right.clone()),
+                    });
+                }
+            }
+            branches
+        }
+        Expr::Number(_) | Expr::Var(_) => vec![expr.clone()],
+    }
+}
+
+fn expression_operands_are_single(expr: &Expr, singles: &BTreeMap<String, f64>) -> bool {
+    match expr {
+        Expr::PlusMinus(inner) => {
+            matches!(linearize(inner, singles), LinearizeOutcome::Numeric(_))
+                && expression_operands_are_single(inner, singles)
+        }
+        Expr::Neg(inner) => expression_operands_are_single(inner, singles),
+        Expr::Binary { left, right, .. } => {
+            expression_operands_are_single(left, singles)
+                && expression_operands_are_single(right, singles)
+        }
+        Expr::Number(_) | Expr::Var(_) => true,
+    }
+}
+
+fn direct_target(equation: &Equation) -> Option<&str> {
+    if let Expr::Var(name) = &equation.left {
+        return Some(name);
+    }
+    if let Expr::Var(name) = &equation.right {
+        return Some(name);
+    }
+    None
+}
+
+fn branch_union(survivors: &[State], name: &str) -> Vec<f64> {
+    let mut values = Vec::new();
+    for branch in survivors {
+        match branch.values.get(name) {
+            Some(Value::Single(value)) => values.push(*value),
+            Some(Value::Set(set)) => values.extend(set.iter().copied()),
+            None => {}
+        }
+    }
+    normalized_roots(values)
 }
 
 fn unknown_variables(equation: &Equation, values: &BTreeMap<String, Value>) -> BTreeSet<String> {
@@ -922,5 +1207,221 @@ mod sets {
         let results = evaluate(&input(&["x^2 + x = 0", "x = 2"]));
 
         assert_error(&results[1], "x = 0, -1");
+    }
+}
+
+#[cfg(test)]
+mod plus_minus {
+    use super::*;
+    use crate::format::Suggestion;
+
+    fn input(texts: &[&str]) -> Vec<InputLine> {
+        texts
+            .iter()
+            .enumerate()
+            .map(|(index, text)| InputLine {
+                id: format!("l{index}"),
+                text: (*text).to_owned(),
+            })
+            .collect()
+    }
+
+    fn statuses(results: &[LineEvaluation]) -> Vec<LineStatus> {
+        results.iter().map(|result| result.status).collect()
+    }
+
+    fn suggestion(display: &str, insert: &str) -> Option<Suggestion> {
+        Some(Suggestion {
+            display: display.to_owned(),
+            insert: insert.to_owned(),
+        })
+    }
+
+    fn assert_error(result: &LineEvaluation, message: &str) {
+        assert_eq!(result.status, LineStatus::Error);
+        assert_eq!(result.error.as_deref(), Some(message));
+        assert_eq!(result.suggestion, None);
+    }
+
+    #[test]
+    fn a_plus_minus_assignment_creates_a_symmetric_set() {
+        let results = evaluate(&input(&["x = ±2", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Incomplete]
+        );
+        assert_eq!(results[1].suggestion, suggestion("±2", "±2"));
+    }
+
+    #[test]
+    fn a_nested_plus_minus_formula_collects_a_set() {
+        let results = evaluate(&input(&["a + (2 + ±3) = 10", "a ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Incomplete]
+        );
+        assert_eq!(results[1].suggestion, suggestion("11, 5", "11"));
+    }
+
+    #[test]
+    fn infix_plus_minus_is_invalid() {
+        let results = evaluate(&input(&["a = 2 ± 3"]));
+
+        assert_error(&results[0], "invalid");
+    }
+
+    #[test]
+    fn plus_minus_zero_becomes_a_single_value() {
+        let results = evaluate(&input(&["x = ±0", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Incomplete]
+        );
+        assert_eq!(results[1].suggestion, suggestion("0", "0"));
+    }
+
+    #[test]
+    fn a_known_single_stays_when_a_branch_matches() {
+        let results = evaluate(&input(&["x = 2", "x = ±2", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[2].suggestion, suggestion("2", "2"));
+    }
+
+    #[test]
+    fn a_known_single_conflicts_when_no_branch_matches() {
+        let results = evaluate(&input(&["x = 3", "x = ±2"]));
+
+        assert_eq!(results[0].status, LineStatus::Ok);
+        assert_error(&results[1], "x = 3");
+    }
+
+    #[test]
+    fn a_set_containing_both_branches_is_kept() {
+        let results = evaluate(&input(&["x^2 = 4", "x = ±2", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[2].suggestion, suggestion("±2", "±2"));
+    }
+
+    #[test]
+    fn a_set_containing_one_branch_narrows() {
+        let results = evaluate(&input(&["x^2 - 5 * x + 6 = 0", "x = ±2", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[2].suggestion, suggestion("2", "2"));
+    }
+
+    #[test]
+    fn more_than_two_plus_minus_nodes_are_silent() {
+        let results = evaluate(&input(&["x = ±1 + ±2 + ±3", "x ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Incomplete]
+        );
+        assert_eq!(results[0].error, None);
+        assert_eq!(results[1].suggestion, None);
+    }
+
+    #[test]
+    fn two_plus_minus_nodes_make_four_branches() {
+        let results = evaluate(&input(&["a = ±1 + ±2", "a ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Incomplete]
+        );
+        assert_eq!(results[1].suggestion, suggestion("3, 1, -1, -3", "3"));
+    }
+
+    #[test]
+    fn a_set_operand_stays_pending() {
+        let results = evaluate(&input(&["x^2 = 4", "y = ±x", "y ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[1].error, None);
+        assert_eq!(results[2].suggestion, None);
+    }
+
+    #[test]
+    fn a_pending_set_operand_branches_after_narrowing() {
+        let results = evaluate(&input(&["x^2 = 4", "y = ±x", "x = 2", "y ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![
+                LineStatus::Ok,
+                LineStatus::Ok,
+                LineStatus::Ok,
+                LineStatus::Incomplete,
+            ]
+        );
+        assert_eq!(results[3].suggestion, suggestion("±2", "±2"));
+    }
+
+    #[test]
+    fn a_formula_branches_with_a_known_multiplier() {
+        let results = evaluate(&input(&["m = 3", "f = ±2 * m", "f ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete,]
+        );
+        assert_eq!(results[2].suggestion, suggestion("±6", "±6"));
+    }
+
+    #[test]
+    fn a_blocked_set_is_retried_when_the_slot_frees() {
+        let results = evaluate(&input(&["x^2 = 4", "y = ±3", "y =", "x = 2", "y ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![
+                LineStatus::Ok,
+                LineStatus::Ok,
+                LineStatus::Incomplete,
+                LineStatus::Ok,
+                LineStatus::Incomplete,
+            ]
+        );
+        assert_eq!(results[2].suggestion, None);
+        assert_eq!(results[4].suggestion, suggestion("±3", "±3"));
+    }
+
+    #[test]
+    fn branches_that_all_divide_by_zero_show_division_by_zero() {
+        let results = evaluate(&input(&["x = ±2 / 0"]));
+
+        assert_error(&results[0], "÷ 0");
+    }
+
+    #[test]
+    fn branches_that_all_go_non_finite_are_invalid() {
+        let results = evaluate(&input(&["x = ±2 * 10^309"]));
+
+        assert_error(&results[0], "invalid");
+    }
+
+    #[test]
+    fn a_false_disjunction_without_a_target_is_false() {
+        let results = evaluate(&input(&["±1 = ±2"]));
+
+        assert_error(&results[0], "false");
     }
 }
