@@ -1,7 +1,13 @@
 //! Pure Rust core for Inlign.
 //!
-//! Nothing math-related lives here yet: only `version()` crosses into Rust in
-//! this milestone.
+//! The variable engine lives here: AST, lexer, parser, solver, formatting and
+//! prefix evaluation. It has no WASM, DOM, React, storage or worker dependency.
+
+pub mod ast;
+pub mod lexer;
+
+pub use ast::{BinOp, Equation, Expr};
+pub use lexer::{LexError, Token, TokenKind, lex};
 
 /// Returns the crate version.
 pub fn version() -> &'static str {
