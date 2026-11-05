@@ -60,6 +60,9 @@ jobs:
       - name: Test Rust
         run: cargo test --workspace
 
+      - name: Performance guard
+        run: cargo test --release -p inlign-engine --test performance -- --nocapture
+
       - name: Typecheck
         run: pnpm typecheck
 
