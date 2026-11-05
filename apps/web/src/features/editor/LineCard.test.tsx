@@ -56,7 +56,24 @@ function focusAtEnd(textarea: HTMLTextAreaElement): void {
   fireEvent.keyUp(textarea, { key: "End" });
 }
 
+const execCommandDescriptor = Object.getOwnPropertyDescriptor(document, "execCommand");
+
+function stubExecCommand(implementation: () => boolean) {
+  const execCommand = vi.fn(implementation);
+  Object.defineProperty(document, "execCommand", {
+    configurable: true,
+    value: execCommand,
+  });
+  return execCommand;
+}
+
 afterEach(() => {
+  if (execCommandDescriptor === undefined) {
+    Reflect.deleteProperty(document, "execCommand");
+  } else {
+    Object.defineProperty(document, "execCommand", execCommandDescriptor);
+  }
+
   cleanup();
 });
 
@@ -178,4 +195,156 @@ test("does not add a second gutter space after trailing whitespace", () => {
   focusAtEnd(textarea);
 
   expect(highlight?.textContent).toBe("a = 5");
+});
+
+test("Tab prefers execCommand and leaves the native edit alone when it changes the value", () => {
+  const { onAction, textarea } = renderCard("a =", {
+    id: "l1",
+    status: "incomplete",
+    suggestion: { display: "5", insert: "5" },
+  });
+  focusAtEnd(textarea);
+  const execCommand = stubExecCommand(() => {
+    textarea.value = `${textarea.value} 5`;
+    return true;
+  });
+
+  const notPrevented = fireEvent.keyDown(textarea, { key: "Tab" });
+
+  expect(notPrevented).toBe(false);
+  expect(execCommand).toHaveBeenCalledWith("insertText", false, " 5");
+  expect(onAction).not.toHaveBeenCalled();
+});
+
+test("falls back to the change action when execCommand declines", () => {
+  const { onAction, textarea } = renderCard("a =", {
+    id: "l1",
+    status: "incomplete",
+    suggestion: { display: "5", insert: "5" },
+  });
+  focusAtEnd(textarea);
+  const execCommand = stubExecCommand(() => false);
+
+  fireEvent.keyDown(textarea, { key: "Tab" });
+
+  expect(execCommand).toHaveBeenCalledWith("insertText", false, " 5");
+  expect(onAction).toHaveBeenCalledWith({ type: "change", text: "a = 5" });
+});
+
+test("falls back when execCommand reports success but leaves the value unchanged", () => {
+  const { onAction, textarea } = renderCard("a =", {
+    id: "l1",
+    status: "incomplete",
+    suggestion: { display: "5", insert: "5" },
+  });
+  focusAtEnd(textarea);
+  stubExecCommand(() => true);
+
+  fireEvent.keyDown(textarea, { key: "Tab" });
+
+  expect(onAction).toHaveBeenCalledWith({ type: "change", text: "a = 5" });
+});
+
+test("the non-symmetric fallback inserts the largest value, not the display", () => {
+  const { onAction, textarea } = renderCard("x =", {
+    id: "l1",
+    status: "incomplete",
+    suggestion: { display: "11, 5", insert: "11" },
+  });
+  focusAtEnd(textarea);
+  const execCommand = stubExecCommand(() => false);
+
+  fireEvent.keyDown(textarea, { key: "Tab" });
+
+  expect(execCommand).toHaveBeenCalledWith("insertText", false, " 11");
+  expect(onAction).toHaveBeenCalledWith({ type: "change", text: "x = 11" });
+});
+
+test("Escape dismisses the ghost and hint until the line text changes", () => {
+  const annotation: LineEvaluation = {
+    id: "l1",
+    status: "incomplete",
+    suggestion: { display: "5", insert: "5" },
+  };
+  const onAction = vi.fn();
+  const view = (text: string) => (
+    <ol>
+      <LineCard
+        line={{ id: "l1", text }}
+        index={0}
+        total={1}
+        annotation={annotation}
+        onAction={onAction}
+      />
+    </ol>
+  );
+  const { rerender } = render(view("a ="));
+  const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Line 1" });
+  focusAtEnd(textarea);
+
+  expect(document.querySelector("[data-line-annotation='suggestion']")).not.toBeNull();
+  expect(description(textarea)).toBe("Suggestion: 5. Press Tab to accept 5.");
+
+  const notPrevented = fireEvent.keyDown(textarea, { key: "Escape" });
+
+  expect(notPrevented).toBe(false);
+  expect(textarea).toHaveValue("a =");
+  expect(document.querySelector("[data-line-annotation='suggestion']")).toBeNull();
+  expect(textarea).not.toHaveAttribute("aria-describedby");
+
+  const tabNotPrevented = fireEvent.keyDown(textarea, { key: "Tab" });
+  expect(tabNotPrevented).toBe(true);
+  expect(onAction).not.toHaveBeenCalled();
+
+  rerender(view("a = "));
+
+  expect(document.querySelector("[data-line-annotation='suggestion']")).not.toBeNull();
+  expect(description(textarea)).toBe("Suggestion: 5. Press Tab to accept 5.");
+});
+
+test("Escape without a visible suggestion is left to the textarea", () => {
+  const { onAction, textarea } = renderCard("a =", { id: "l1", status: "ok" });
+
+  const notPrevented = fireEvent.keyDown(textarea, { key: "Escape" });
+
+  expect(notPrevented).toBe(true);
+  expect(onAction).not.toHaveBeenCalled();
+});
+
+test("restores the caret after the controlled fallback renders", async () => {
+  const annotation: LineEvaluation = {
+    id: "l1",
+    status: "incomplete",
+    suggestion: { display: "5", insert: "5" },
+  };
+  const onAction = vi.fn();
+  const view = (text: string) => (
+    <ol>
+      <LineCard
+        line={{ id: "l1", text }}
+        index={0}
+        total={1}
+        annotation={annotation}
+        onAction={onAction}
+      />
+    </ol>
+  );
+  const { rerender } = render(view("a ="));
+  const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Line 1" });
+  focusAtEnd(textarea);
+  stubExecCommand(() => false);
+
+  fireEvent.keyDown(textarea, { key: "Tab" });
+  expect(onAction).toHaveBeenCalledWith({ type: "change", text: "a = 5" });
+
+  rerender(view("a = 5"));
+
+  await new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => {
+      resolve();
+    });
+  });
+
+  expect(textarea.selectionStart).toBe(5);
+  expect(textarea.selectionEnd).toBe(5);
 });

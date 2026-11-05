@@ -1,12 +1,15 @@
 import { useCallback } from "react";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 
+import type { Suggestion } from "../../engine/protocol.ts";
 import type { LineAction } from "./lineOps.ts";
 
 export type UseLineKeysOptions = {
   index: number;
   total: number;
   onAction: (action: LineAction) => void;
+  suggestion?: Suggestion | undefined;
+  onAcceptSuggestion?: ((insert: string) => void) | undefined;
 };
 
 export type UseLineKeys = {
@@ -41,10 +44,22 @@ function fitsOneRow(textarea: HTMLTextAreaElement): boolean {
  * Keyboard and clipboard intents for a single card. The textarea keeps native
  * undo; only structural moves that would cross a card boundary are handled.
  */
-export function useLineKeys({ index, total, onAction }: UseLineKeysOptions): UseLineKeys {
+export function useLineKeys({
+  index,
+  total,
+  onAction,
+  suggestion,
+  onAcceptSuggestion,
+}: UseLineKeysOptions): UseLineKeys {
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
       if (isComposing(event)) {
+        return;
+      }
+
+      if (event.key === "Tab" && !hasModifier(event) && suggestion && onAcceptSuggestion) {
+        event.preventDefault();
+        onAcceptSuggestion(suggestion.insert);
         return;
       }
 
@@ -106,7 +121,7 @@ export function useLineKeys({ index, total, onAction }: UseLineKeysOptions): Use
         }
       }
     },
-    [index, total, onAction],
+    [index, onAcceptSuggestion, onAction, suggestion, total],
   );
 
   const onPaste = useCallback(

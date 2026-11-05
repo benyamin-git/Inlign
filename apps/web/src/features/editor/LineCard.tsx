@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 
 import type { Line } from "../../data/models.ts";
 import type { LineEvaluation } from "../../engine/protocol.ts";
@@ -22,8 +23,8 @@ export function LineCard({ line, index, total, annotation, onAction }: LineCardP
   const highlightRef = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState(false);
   const [caretAtEnd, setCaretAtEnd] = useState(false);
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
   const messageId = useId();
-  const { onKeyDown, onPaste } = useLineKeys({ index, total, onAction });
   const tokens = useMemo(() => highlightMath(line.text), [line.text]);
   const {
     attributes,
@@ -38,7 +39,9 @@ export function LineCard({ line, index, total, annotation, onAction }: LineCardP
   const error = annotation?.status === "error" ? annotation.error : undefined;
   const suggestion = annotation?.status === "incomplete" ? annotation.suggestion : undefined;
   const dimmed = annotation?.status === "skipped";
-  const visibleSuggestion = focused && caretAtEnd ? suggestion : undefined;
+  const suggestionKey = `${line.text}\u0000${suggestion?.display ?? ""}\u0000${suggestion?.insert ?? ""}`;
+  const dismissed = dismissedKey === suggestionKey;
+  const visibleSuggestion = focused && caretAtEnd && !dismissed ? suggestion : undefined;
   const suggestionText = visibleSuggestion?.display;
   const mark = dimmed
     ? null
@@ -74,6 +77,75 @@ export function LineCard({ line, index, total, annotation, onAction }: LineCardP
         textarea.selectionStart === textarea.value.length,
     );
   }, []);
+
+  const acceptSuggestion = useCallback(
+    (insert: string) => {
+      const textarea = textareaRef.current;
+
+      if (!textarea) {
+        return;
+      }
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      if (start !== end || end !== textarea.value.length) {
+        return;
+      }
+
+      const separator = textarea.value.length > 0 && !/\s$/.test(textarea.value) ? " " : "";
+      const inserted = `${separator}${insert}`;
+      const next = `${textarea.value.slice(0, start)}${inserted}${textarea.value.slice(end)}`;
+      const before = textarea.value;
+
+      if (typeof document.execCommand === "function") {
+        try {
+          document.execCommand("insertText", false, inserted);
+        } catch {
+          // The controlled change below is the fallback.
+        }
+      }
+
+      if (textarea.value !== before) {
+        return;
+      }
+
+      onAction({ type: "change", text: next });
+
+      const restore = () => {
+        if (!textarea.isConnected) {
+          return;
+        }
+
+        textarea.setSelectionRange(next.length, next.length);
+      };
+
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(restore);
+      } else {
+        restore();
+      }
+    },
+    [onAction],
+  );
+
+  const { onKeyDown, onPaste } = useLineKeys({
+    index,
+    total,
+    onAction,
+    suggestion: visibleSuggestion,
+    onAcceptSuggestion: acceptSuggestion,
+  });
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Escape" && visibleSuggestion !== undefined) {
+      event.preventDefault();
+      setDismissedKey(suggestionKey);
+      return;
+    }
+
+    onKeyDown(event);
+  };
 
   // Text or annotation changes can wrap to another row; measure after the
   // browser lays the new value out.
@@ -220,7 +292,7 @@ export function LineCard({ line, index, total, annotation, onAction }: LineCardP
           onKeyUp={(event) => {
             updateCaret(event.currentTarget);
           }}
-          onKeyDown={onKeyDown}
+          onKeyDown={handleKeyDown}
           onPaste={onPaste}
         />
         {description === undefined ? null : (
