@@ -14,6 +14,7 @@ export type NotebookSidebarProps = {
   onCreate: () => Promise<unknown>;
   onRename: (id: string, title: string) => Promise<void>;
   onSetPinned: (id: string, pinned: boolean) => Promise<void>;
+  onSetIgnoreCase: (id: string, ignoreCase: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onReorder: (section: NotebookSection, orderedIds: string[]) => Promise<void>;
   onExport?: ((notebook: Notebook) => void) | undefined;
@@ -30,6 +31,7 @@ export function NotebookSidebar({
   onCreate,
   onRename,
   onSetPinned,
+  onSetIgnoreCase,
   onDelete,
   onReorder,
   onExport,
@@ -132,6 +134,7 @@ export function NotebookSidebar({
                 }}
                 onRename={(nextTitle) => onRename(notebook.id, nextTitle)}
                 onSetPinned={(nextPinned) => handleSetPinned(notebook.id, nextPinned)}
+                onSetIgnoreCase={(nextIgnoreCase) => onSetIgnoreCase(notebook.id, nextIgnoreCase)}
                 onDelete={() => handleDelete(notebook.id)}
                 onExport={
                   onExport

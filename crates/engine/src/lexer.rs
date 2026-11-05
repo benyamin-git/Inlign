@@ -32,6 +32,14 @@ pub enum LexError {
     InvalidNumber,
 }
 
+/// True when the next non-whitespace character starts a name.
+fn next_is_name(input: &str, start: usize) -> bool {
+    input[start..]
+        .chars()
+        .find(|ch| !ch.is_whitespace())
+        .is_some_and(|ch| ch.is_ascii_alphabetic() || ch == '_')
+}
+
 /// Tokenizes one line, normalizing the typographic operator aliases.
 pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
     let mut tokens = Vec::new();
@@ -91,6 +99,19 @@ pub fn lex(input: &str) -> Result<Vec<Token>, LexError> {
             '±' => {
                 i += ch.len_utf8();
                 TokenKind::PlusMinus
+            }
+            '.' if matches!(
+                tokens.last(),
+                Some(Token {
+                    kind: TokenKind::Name(_),
+                    ..
+                })
+            ) && next_is_name(input, i + 1) =>
+            {
+                // A dot between names is multiplication; dots in numbers
+                // remain decimal separators.
+                i += 1;
+                TokenKind::Star
             }
             _ if ch.is_ascii_digit() => {
                 let mut j = i;
@@ -193,13 +214,30 @@ mod tests {
     #[test]
     fn names_are_multi_letter_and_case_sensitive() {
         assert_eq!(
-            kinds("foo Foo _bar a1 _"),
+            kinds("foo Foo _bar a1 _ xy"),
             vec![
                 TokenKind::Name("foo".into()),
                 TokenKind::Name("Foo".into()),
                 TokenKind::Name("_bar".into()),
                 TokenKind::Name("a1".into()),
                 TokenKind::Name("_".into()),
+                TokenKind::Name("xy".into()),
+                TokenKind::Eof,
+            ]
+        );
+    }
+
+    #[test]
+    fn a_dot_between_names_is_multiplication() {
+        assert_eq!(
+            kinds("x.y alpha . beta"),
+            vec![
+                TokenKind::Name("x".into()),
+                TokenKind::Star,
+                TokenKind::Name("y".into()),
+                TokenKind::Name("alpha".into()),
+                TokenKind::Star,
+                TokenKind::Name("beta".into()),
                 TokenKind::Eof,
             ]
         );
@@ -224,6 +262,7 @@ mod tests {
         assert_eq!(lex(".5"), Err(LexError::InvalidChar));
         assert_eq!(lex("1.2.3"), Err(LexError::InvalidChar));
         assert_eq!(lex("1_000"), Err(LexError::InvalidChar));
+        assert_eq!(lex("x.5"), Err(LexError::InvalidChar));
     }
 
     #[test]

@@ -66,6 +66,13 @@ test("computes the exact example and keeps the accepted value after reload", asy
   await expect(page.getByRole("textbox", { name: "Line 4" })).toHaveValue("a = 5");
 });
 
+test("a dot between names multiplies them", async ({ page }) => {
+  await newNotebook(page, ["x = 2", "y = 3", "a = x.y", "a = "]);
+
+  await expect(line(page, 3)).toHaveAttribute("data-engine-status", "ok");
+  await expect(suggestion(page, 4)).toHaveText("6");
+});
+
 test("a formula after its values fills only later incomplete lines", async ({ page }) => {
   await newNotebook(page, ["f = 10", "m = 2", "a = ", "f = m × a"]);
 
@@ -249,6 +256,67 @@ test("Tab moves focus normally without a suggestion and stays after accepting on
   await expect(second).toBeFocused();
 });
 
+test("case-insensitive variables can be enabled for one notebook", async ({ page }) => {
+  await newNotebook(page, ["X = 2", "x = "]);
+
+  const second = page.getByRole("textbox", { name: "Line 2" });
+  const sidebar = page.getByRole("complementary", { name: "Notebooks" });
+
+  await expect(second).toBeFocused();
+  await expect(line(page, 2)).toHaveAttribute("data-engine-status", "incomplete");
+  await expect(suggestion(page, 2)).toHaveCount(0);
+
+  await sidebar.getByRole("button", { name: "Actions for Untitled" }).click();
+
+  const toggle = page.getByRole("menuitemcheckbox", { name: "Ignore variable case" });
+
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await toggle.click();
+
+  await second.focus();
+  await second.press("End");
+  await expect(suggestion(page, 2)).toHaveText("2");
+
+  await sidebar.getByRole("button", { name: "Actions for Untitled" }).click();
+  await expect(
+    page.getByRole("menuitemcheckbox", { name: "Ignore variable case" }),
+  ).toHaveAttribute("aria-checked", "true");
+});
+
+test("a new notebook follows the case preference from Settings", async ({ page }) => {
+  await page.getByRole("button", { name: "Settings" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  const toggle = dialog.getByRole("checkbox", { name: "Ignore variable case by default" });
+
+  await expect(toggle).not.toBeChecked();
+  await toggle.check();
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(dialog).toBeHidden();
+
+  await newNotebook(page, ["X = 2", "x = "]);
+
+  const second = page.getByRole("textbox", { name: "Line 2" });
+
+  await expect(second).toBeFocused();
+  await expect(suggestion(page, 2)).toHaveText("2");
+});
+
+test("pressing Space twice accepts a suggestion like Tab", async ({ page }) => {
+  await newNotebook(page, ["a = 5", "a ="]);
+
+  const second = page.getByRole("textbox", { name: "Line 2" });
+
+  await expect(second).toBeFocused();
+  await expect(suggestion(page, 2)).toHaveText("5");
+
+  await second.press("Space");
+  await second.press("Space");
+
+  await expect(second).toHaveValue("a = 5");
+  await expect(suggestion(page, 2)).toHaveCount(0);
+});
+
 test("errors and suggestions expose the exact accessible descriptions", async ({ page }) => {
   await newNotebook(page, ["a = 5", "a = 6"]);
 
@@ -262,5 +330,7 @@ test("errors and suggestions expose the exact accessible descriptions", async ({
   const suggestionLine = page.getByRole("textbox", { name: "Line 2" });
 
   await expect(suggestion(page, 2)).toHaveText("5");
-  await expect(suggestionLine).toHaveAccessibleDescription("Suggestion: 5. Press Tab to accept 5.");
+  await expect(suggestionLine).toHaveAccessibleDescription(
+    "Suggestion: 5. Press Tab or Space twice to accept 5.",
+  );
 });

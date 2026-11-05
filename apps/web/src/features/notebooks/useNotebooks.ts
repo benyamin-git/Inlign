@@ -21,6 +21,7 @@ export type UseNotebooks = {
   create: (title?: string, lines?: Line[]) => Promise<Notebook>;
   rename: (id: string, title: string) => Promise<void>;
   setPinned: (id: string, pinned: boolean) => Promise<void>;
+  setIgnoreCase: (id: string, ignoreCase: boolean) => Promise<void>;
   remove: (id: string) => Promise<void>;
   reorder: (section: NotebookSection, orderedIds: string[]) => Promise<void>;
   replaceAll: (notebooks: Notebook[]) => Promise<void>;
@@ -123,6 +124,14 @@ export function useNotebooks(): UseNotebooks {
     [refresh],
   );
 
+  const setIgnoreCase = useCallback(
+    async (id: string, ignoreCase: boolean): Promise<void> => {
+      await updateNotebook(id, { ignoreCase });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const remove = useCallback(
     async (id: string): Promise<void> => {
       const previous = notebooksRef.current;
@@ -182,6 +191,7 @@ export function useNotebooks(): UseNotebooks {
     create,
     rename,
     setPinned,
+    setIgnoreCase,
     remove,
     reorder,
     replaceAll,

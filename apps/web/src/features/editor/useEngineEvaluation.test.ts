@@ -76,6 +76,30 @@ test("maps evaluations by line id", async () => {
   expect(result.current.size).toBe(2);
 });
 
+test("case-insensitive evaluation lowercases the engine input and re-runs when toggled", async () => {
+  const evaluate = vi.fn().mockResolvedValue([]);
+  const engine: EngineEvaluator = { evaluate };
+  const input = lines("X = 2", "x = X + Y");
+
+  const { rerender } = renderHook(
+    ({ ignoreCase }: { ignoreCase: boolean }) => useEngineEvaluation(engine, input, ignoreCase),
+    { initialProps: { ignoreCase: false } },
+  );
+
+  await advance();
+  expect(evaluate).toHaveBeenLastCalledWith([
+    { id: "l0", text: "X = 2" },
+    { id: "l1", text: "x = X + Y" },
+  ]);
+
+  rerender({ ignoreCase: true });
+  await advance();
+  expect(evaluate).toHaveBeenLastCalledWith([
+    { id: "l0", text: "x = 2" },
+    { id: "l1", text: "x = x + y" },
+  ]);
+});
+
 test("ignores a stale response after a newer request", async () => {
   const first = deferred<LineEvaluation[]>();
   const second = deferred<LineEvaluation[]>();

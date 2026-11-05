@@ -114,7 +114,7 @@ test("shows a focused suggestion at the caret end with a gutter space", () => {
   const mark = document.querySelector("[data-line-annotation='suggestion']");
   expect(mark).toHaveTextContent("5");
   expect(mark).toHaveClass("text-on-surface-variant");
-  expect(description(textarea)).toBe("Suggestion: 5. Press Tab to accept 5.");
+  expect(description(textarea)).toBe("Suggestion: 5. Press Tab or Space twice to accept 5.");
 });
 
 test("hides the suggestion when unfocused or the caret is not at the end", () => {
@@ -283,7 +283,7 @@ test("Escape dismisses the ghost and hint until the line text changes", () => {
   focusAtEnd(textarea);
 
   expect(document.querySelector("[data-line-annotation='suggestion']")).not.toBeNull();
-  expect(description(textarea)).toBe("Suggestion: 5. Press Tab to accept 5.");
+  expect(description(textarea)).toBe("Suggestion: 5. Press Tab or Space twice to accept 5.");
 
   const notPrevented = fireEvent.keyDown(textarea, { key: "Escape" });
 
@@ -299,7 +299,7 @@ test("Escape dismisses the ghost and hint until the line text changes", () => {
   rerender(view("a = "));
 
   expect(document.querySelector("[data-line-annotation='suggestion']")).not.toBeNull();
-  expect(description(textarea)).toBe("Suggestion: 5. Press Tab to accept 5.");
+  expect(description(textarea)).toBe("Suggestion: 5. Press Tab or Space twice to accept 5.");
 });
 
 test("Escape without a visible suggestion is left to the textarea", () => {

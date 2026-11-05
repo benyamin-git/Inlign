@@ -40,7 +40,7 @@ export function NotebookEditor({
     onReorder,
     cancelPendingWrites,
   } = useNotebookEditor(notebook, revision);
-  const annotations = useEngineEvaluation(engine, lines);
+  const annotations = useEngineEvaluation(engine, lines, notebook.ignoreCase);
 
   const handleAction = useCallback(
     (lineId: string, action: LineAction) => {

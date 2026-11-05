@@ -9,6 +9,7 @@ function notebook(id: string, pinned: boolean): Notebook {
     title: id,
     lines: [{ id: `${id}-line`, text: "" }],
     pinned,
+    ignoreCase: false,
     sortOrder: 0,
     createdAt: 0,
     updatedAt: 0,

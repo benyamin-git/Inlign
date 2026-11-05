@@ -14,14 +14,23 @@ afterAll(() => {
 });
 
 test("returns defaults when nothing is stored", async () => {
-  await expect(getSettings()).resolves.toEqual({ theme: null, accent: "blue" });
+  await expect(getSettings()).resolves.toEqual({
+    theme: null,
+    accent: "blue",
+    defaultIgnoreCase: false,
+  });
 });
 
-test("round-trips theme and accent settings", async () => {
+test("round-trips theme, accent and the new-notebook case preference", async () => {
   await setSetting("theme", "oled");
   await setSetting("accent", "rose");
+  await setSetting("defaultIgnoreCase", true);
 
-  await expect(getSettings()).resolves.toEqual({ theme: "oled", accent: "rose" });
+  await expect(getSettings()).resolves.toEqual({
+    theme: "oled",
+    accent: "rose",
+    defaultIgnoreCase: true,
+  });
 });
 
 test("stores a null theme to follow the OS again", async () => {
@@ -29,11 +38,23 @@ test("stores a null theme to follow the OS again", async () => {
   await setSetting("theme", null);
   await setSetting("accent", "teal");
 
-  await expect(getSettings()).resolves.toEqual({ theme: null, accent: "teal" });
+  await expect(getSettings()).resolves.toEqual({
+    theme: null,
+    accent: "teal",
+    defaultIgnoreCase: false,
+  });
 });
 
-test("ignores an invalid stored theme", async () => {
+test("ignores invalid stored values", async () => {
   await db.settings.put({ key: "theme", value: "neon" as unknown as Theme });
+  await db.settings.put({
+    key: "defaultIgnoreCase",
+    value: "yes" as unknown as boolean,
+  });
 
-  await expect(getSettings()).resolves.toEqual({ theme: null, accent: "blue" });
+  await expect(getSettings()).resolves.toEqual({
+    theme: null,
+    accent: "blue",
+    defaultIgnoreCase: false,
+  });
 });

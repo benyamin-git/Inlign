@@ -48,6 +48,7 @@ export default function App() {
     create,
     rename,
     setPinned,
+    setIgnoreCase,
     remove,
     reorder,
     replaceAll,
@@ -68,8 +69,12 @@ export default function App() {
   const getNotebooks = useCallback(() => notebooks, [notebooks]);
   const getLines = useCallback((id: string) => editorLinesRef.current.get(id), []);
   const getSettings = useCallback(
-    () => ({ theme: settings.theme, accent: settings.accent }),
-    [settings.theme, settings.accent],
+    () => ({
+      theme: settings.theme,
+      accent: settings.accent,
+      defaultIgnoreCase: settings.defaultIgnoreCase,
+    }),
+    [settings.theme, settings.accent, settings.defaultIgnoreCase],
   );
 
   // A restore replaces stored lines, so cached editor snapshots are stale until
@@ -86,6 +91,7 @@ export default function App() {
     getLines,
     setTheme: settings.setTheme,
     setAccent: settings.setAccent,
+    setDefaultIgnoreCase: settings.setDefaultIgnoreCase,
     cancelPendingWrites,
   });
   const { exportNotebook: downloadNotebook } = transfer;
@@ -121,6 +127,7 @@ export default function App() {
             onCreate={create}
             onRename={rename}
             onSetPinned={setPinned}
+            onSetIgnoreCase={setIgnoreCase}
             onDelete={remove}
             onReorder={reorder}
             onExport={exportNotebook}

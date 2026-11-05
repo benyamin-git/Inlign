@@ -18,6 +18,7 @@ function Harness({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
       onCreate={model.create}
       onRename={model.rename}
       onSetPinned={model.setPinned}
+      onSetIgnoreCase={model.setIgnoreCase}
       onDelete={model.remove}
       onReorder={model.reorder}
       onNavigate={onNavigate}
@@ -163,6 +164,33 @@ test("pins and unpins a notebook from the item menu", async () => {
     expect(screen.getByRole("button", { name: "Alpha" })).toHaveFocus();
   });
   await expect(getNotebook(notebook.id)).resolves.toMatchObject({ pinned: false });
+});
+
+test("toggles case-insensitive variables per notebook from the item menu", async () => {
+  const user = userEvent.setup();
+  const notebook = await createNotebook("Alpha");
+
+  render(<Harness />);
+  await screen.findByRole("button", { name: "Alpha" });
+
+  await user.click(screen.getByRole("button", { name: "Actions for Alpha" }));
+
+  const toggle = screen.getByRole("menuitemcheckbox", { name: "Ignore variable case" });
+
+  expect(toggle).toHaveAttribute("aria-checked", "false");
+
+  await user.click(toggle);
+
+  await waitFor(async () => {
+    await expect(getNotebook(notebook.id)).resolves.toMatchObject({ ignoreCase: true });
+  });
+
+  await user.click(screen.getByRole("button", { name: "Actions for Alpha" }));
+
+  expect(screen.getByRole("menuitemcheckbox", { name: "Ignore variable case" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
 });
 
 test("delete asks for confirmation, then removes the notebook", async () => {

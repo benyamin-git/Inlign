@@ -55,7 +55,7 @@ export function LineCard({ line, index, total, annotation, onAction }: LineCardP
     error !== undefined
       ? `Error: ${error}.`
       : visibleSuggestion !== undefined
-        ? `Suggestion: ${visibleSuggestion.display}. Press Tab to accept ${visibleSuggestion.insert}.`
+        ? `Suggestion: ${visibleSuggestion.display}. Press Tab or Space twice to accept ${visibleSuggestion.insert}.`
         : undefined;
 
   const grow = useCallback(() => {
@@ -129,7 +129,7 @@ export function LineCard({ line, index, total, annotation, onAction }: LineCardP
     [onAction],
   );
 
-  const { onKeyDown, onPaste } = useLineKeys({
+  const { onKeyDown, onBeforeInput, onPaste } = useLineKeys({
     index,
     total,
     onAction,
@@ -146,6 +146,22 @@ export function LineCard({ line, index, total, annotation, onAction }: LineCardP
 
     onKeyDown(event);
   };
+
+  // React's synthetic beforeinput does not reach textareas here, and Android
+  // keyboards report spaces as Unidentified on keydown.
+  useEffect(() => {
+    const textarea = textareaRef.current;
+
+    if (textarea === null) {
+      return;
+    }
+
+    textarea.addEventListener("beforeinput", onBeforeInput);
+
+    return () => {
+      textarea.removeEventListener("beforeinput", onBeforeInput);
+    };
+  }, [onBeforeInput]);
 
   // Text or annotation changes can wrap to another row; measure after the
   // browser lays the new value out.

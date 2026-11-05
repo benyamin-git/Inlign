@@ -34,16 +34,20 @@ test("resolves false and keeps the optimistic value when persistence fails", asy
 
   let themeSaved = true;
   let accentSaved = true;
+  let caseSaved = true;
 
   await act(async () => {
     themeSaved = await result.current.setTheme("dark");
     accentSaved = await result.current.setAccent("rose");
+    caseSaved = await result.current.setDefaultIgnoreCase(true);
   });
 
   expect(themeSaved).toBe(false);
   expect(accentSaved).toBe(false);
+  expect(caseSaved).toBe(false);
   expect(result.current.theme).toBe("dark");
   expect(result.current.accent).toBe("rose");
+  expect(result.current.defaultIgnoreCase).toBe(true);
   expect(document.documentElement.dataset.theme).toBe("dark");
   expect(document.documentElement.dataset.accent).toBe("rose");
   expect(window.localStorage.getItem("inlign.theme")).toBe("dark");

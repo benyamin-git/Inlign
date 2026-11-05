@@ -6,6 +6,7 @@ type NotebookFile = {
   title: string;
   lines: { id: string; text: string }[];
   pinned: boolean;
+  ignoreCase: boolean;
   sortOrder: number;
   createdAt: number;
   updatedAt: number;
@@ -16,7 +17,7 @@ type BackupFile = {
   version: number;
   exportedAt: string;
   notebooks: NotebookFile[];
-  settings: { theme: string | null; accent: string };
+  settings: { theme: string | null; accent: string; defaultIgnoreCase: boolean };
 };
 
 type StoredNotebook = Omit<NotebookFile, "pinned"> & { pinned: number };
@@ -245,7 +246,11 @@ test("replace downloads a safety backup first, then restores only the import and
 
   const backup = await exportBackup(page, settings);
 
-  expect(backup.settings).toEqual({ theme: "light", accent: "teal" });
+  expect(backup.settings).toEqual({
+    theme: "light",
+    accent: "teal",
+    defaultIgnoreCase: false,
+  });
 
   // Mutate the appearance after exporting so Replace must restore these two.
   await settings.getByText("Dark", { exact: true }).click();
@@ -297,7 +302,11 @@ test("replace downloads a safety backup first, then restores only the import and
   expect(
     safety.notebooks.find((notebook) => notebook.title === "Export B mutated")?.lines[0]?.text,
   ).toBe("b mutated");
-  expect(safety.settings).toEqual({ theme: "dark", accent: "violet" });
+  expect(safety.settings).toEqual({
+    theme: "dark",
+    accent: "violet",
+    defaultIgnoreCase: false,
+  });
 
   await expect(page.getByRole("dialog", { name: "Replace all data?" })).toBeVisible();
 
@@ -393,6 +402,15 @@ test.describe("short landscape", () => {
 test("invalid JSON and schema errors stay inline and write nothing", async ({ page }) => {
   await page.goto("/");
   await createNotebook(page, "Guardian", ["keep me"]);
+
+  // Wait for the initial edit's autosave before snapshotting storage.
+  await expect
+    .poll(async () => {
+      const notebooks = await readNotebooks(page);
+
+      return notebooks.find((notebook) => notebook.title === "Guardian")?.lines[0]?.text;
+    })
+    .toBe("keep me");
 
   const before = await readNotebooks(page);
   const beforeTheme = await page.locator("html").getAttribute("data-theme");

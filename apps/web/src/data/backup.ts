@@ -38,6 +38,7 @@ const notebookSchema = z
       .max(120, "A title is at most 120 characters"),
     lines: z.array(lineSchema).min(1, "A notebook must have at least one line"),
     pinned: z.boolean(),
+    ignoreCase: z.boolean().default(false),
     sortOrder: z.number(),
     createdAt: z.number(),
     updatedAt: z.number(),
@@ -63,6 +64,7 @@ const notebookSchema = z
 const settingsSchema = z.object({
   theme: z.enum(THEMES).nullable(),
   accent: z.enum(ACCENTS),
+  defaultIgnoreCase: z.boolean().default(false),
 });
 
 const backupSchema = z.object({

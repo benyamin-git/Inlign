@@ -226,6 +226,7 @@ function replacedNotebook(id: string, title: string) {
     title,
     lines: [{ id: crypto.randomUUID(), text: `${title} line` }],
     pinned: false,
+    ignoreCase: false,
     sortOrder: 0,
     createdAt: 10,
     updatedAt: 20,

@@ -237,6 +237,35 @@ mod tests {
     }
 
     #[test]
+    fn a_dot_between_names_is_multiplication() {
+        assert_eq!(
+            equation("a = x.y"),
+            Equation {
+                left: var("a"),
+                right: binary(BinOp::Mul, var("x"), var("y")),
+            }
+        );
+        assert_eq!(
+            equation("a = x.y^2"),
+            Equation {
+                left: var("a"),
+                right: binary(
+                    BinOp::Mul,
+                    var("x"),
+                    binary(BinOp::Pow, var("y"), number(2.0)),
+                ),
+            }
+        );
+        assert_eq!(
+            equation("a = alpha . beta"),
+            Equation {
+                left: var("a"),
+                right: binary(BinOp::Mul, var("alpha"), var("beta")),
+            }
+        );
+    }
+
+    #[test]
     fn subtraction_is_left_associative() {
         assert_eq!(
             equation("a = 1 - 2 - 3"),
@@ -397,6 +426,7 @@ mod tests {
             "a + b",
             "hello world",
             "a = 2 3",
+            "a = 2.x",
             "a = 2 + * 3",
             "a == 2",
             "a = 2 = 3",
@@ -409,7 +439,7 @@ mod tests {
 
     #[test]
     fn lexical_errors_are_invalid() {
-        for input in ["a = 1.2.3", "a = 2,3", "a = 2 % 3"] {
+        for input in ["a = 1.2.3", "a = 2,3", "a = 2 % 3", "a = x.5"] {
             assert_eq!(parse(input), Err(ParseError::Invalid), "{input}");
         }
     }

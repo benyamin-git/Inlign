@@ -75,10 +75,11 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
   effect. `useEngineEvaluation` debounces notebook lines by 120 ms, sends a
   stateless `evaluate` request to the module worker, and maps results by line
   id. The UI never imports `@inlign/engine-wasm` directly. Annotations are
-  derived from responses and never stored. The client is unit-tested with a
-  stubbed `Worker`; the worker is implemented but not directly unit-tested.
-  The worker never throws across the boundary; failures come back as
-  `{ id, error }`.
+  derived from responses and never stored. A notebook with `ignoreCase` set
+  lowercases its input at this boundary; the Rust engine itself stays
+  case-sensitive. The client is unit-tested with a stubbed `Worker`; the worker
+  is implemented but not directly unit-tested. The worker never throws across
+  the boundary; failures come back as `{ id, error }`.
 - **The worker is an ES module.** `worker.format: "es"` in
   `apps/web/vite.config.ts` is required because the generated WASM module uses
   top-level await. wasm-bindgen 0.2.130's bundler output has no `init`
@@ -91,6 +92,10 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
   transparent textarea. It adds color only; the engine does the parsing,
   solving and checking. The textarea still owns the editable text, selection
   and undo.
+- **Double-space acceptance uses native `beforeinput`.** `useLineKeys` attaches
+  the listener to the textarea because Android keyboards can report spaces as
+  `Unidentified` with keyCode 229, and React's synthetic `onBeforeInput` does
+  not reach the textarea here. Keep keydown for Tab and structural keys.
 - **Data layer is implemented.** Notebooks and settings go through Dexie
   repositories in `src/data/` and React hooks such as `useNotebooks`,
   `useSettings` and `useTransfer`. IndexedDB is the store. There is no global
@@ -115,12 +120,22 @@ require sudo. CI uses `--with-deps` because its runner has passwordless sudo.
 - One set-valued variable only. The solver covers linear equations, quadratics,
   pure powers with a known exponent and simple rational equations. Coupled
   nonlinear systems, a second set, unknown exponents, functions, units,
-  comparisons, square brackets, `%` and implicit multiplication stay unsolved
-  or invalid.
+  comparisons, square brackets, `%`, general implicit multiplication such as
+  `2a` or `(a)(b)`, and commas stay unsolved or invalid. A dot between name
+  tokens is multiplication (`x.y` means `x × y`); bare `xy` remains one
+  multi-letter name.
+- Variable names are case-sensitive by default. `Notebook.ignoreCase` is a
+  per-notebook option; when true, `useEngineEvaluation` lowercases the engine
+  input so `X` and `x` are one name. New notebooks take
+  `Settings.defaultIgnoreCase`; existing notebooks and old backups default to
+  false. The per-notebook toggle lives in the notebook menu and the default in
+  Settings → New notebooks. Do not make the Rust engine globally
+  case-insensitive.
 - Suggestions appear only on the focused card with the caret at the end and an
-  empty right-hand side. Tab inserts only the missing suffix; Escape dismisses
-  the suggestion. Annotations are derived from engine responses and never
-  stored.
+  empty right-hand side. Tab, or two Spaces within 400 ms, inserts only the
+  missing suffix; without a visible suggestion both spaces remain ordinary
+  spaces. Escape dismisses the suggestion. Annotations are derived from engine
+  responses and never stored.
 - The highlighter is presentation only: it adds color and does not parse or
   evaluate.
 - No raw hex in components. Use semantic theme tokens.

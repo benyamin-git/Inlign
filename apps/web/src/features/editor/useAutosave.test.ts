@@ -10,6 +10,7 @@ const notebook: Notebook = {
   title: "Test notebook",
   lines: [{ id: "line-1", text: "" }],
   pinned: false,
+  ignoreCase: false,
   sortOrder: 0,
   createdAt: 1,
   updatedAt: 1,

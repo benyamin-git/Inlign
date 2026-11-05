@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { BackupError, createBackup, mergeBackup, parseBackup, withFreshIds } from "./backup.ts";
 import type { Notebook, Settings } from "./models.ts";
 
-const SETTINGS: Settings = { theme: "dark", accent: "teal" };
+const SETTINGS: Settings = { theme: "dark", accent: "teal", defaultIgnoreCase: true };
 
 function makeNotebook(overrides: Partial<Notebook> = {}): Notebook {
   return {
@@ -11,6 +11,7 @@ function makeNotebook(overrides: Partial<Notebook> = {}): Notebook {
     title: "Draft",
     lines: [{ id: crypto.randomUUID(), text: "first line" }],
     pinned: false,
+    ignoreCase: false,
     sortOrder: 0,
     createdAt: 1_700_000_000_000,
     updatedAt: 1_700_000_000_000,
@@ -43,7 +44,11 @@ test("round-trips a backup through parseBackup with the full domain shape", () =
       { id: crypto.randomUUID(), text: "" },
     ],
   });
-  const backup = backupWith([notebook], { theme: null, accent: "violet" });
+  const backup = backupWith([notebook], {
+    theme: null,
+    accent: "violet",
+    defaultIgnoreCase: false,
+  });
 
   expect(backup.format).toBe("inlign-backup");
   expect(backup.version).toBe(1);
@@ -58,9 +63,25 @@ test("an empty notebook list is a valid backup", () => {
   expect(parseBackup(backup).notebooks).toEqual([]);
 });
 
+test("old backups without case settings default them to case-sensitive", () => {
+  const backup = backupWith([makeNotebook()]);
+  const legacy = structuredClone(backup) as unknown as {
+    settings: Record<string, unknown>;
+    notebooks: Record<string, unknown>[];
+  };
+
+  delete legacy.settings.defaultIgnoreCase;
+  delete legacy.notebooks[0]!.ignoreCase;
+
+  const parsed = parseBackup(legacy);
+
+  expect(parsed.settings.defaultIgnoreCase).toBe(false);
+  expect(parsed.notebooks[0]?.ignoreCase).toBe(false);
+});
+
 test("creates an independent snapshot of notebooks and settings", () => {
   const notebook = makeNotebook();
-  const settings: Settings = { theme: "dark", accent: "teal" };
+  const settings: Settings = { theme: "dark", accent: "teal", defaultIgnoreCase: false };
   const backup = backupWith([notebook], settings);
 
   notebook.title = "Changed";

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 
 import type { Suggestion } from "../../engine/protocol.ts";
@@ -14,8 +14,13 @@ export type UseLineKeysOptions = {
 
 export type UseLineKeys = {
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  /** Detects the space gesture from text input, not keyboard events. */
+  onBeforeInput: (event: InputEvent) => void;
   onPaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void;
 };
+
+/** Two spaces within this window are treated as one Tab on touch keyboards. */
+export const DOUBLE_SPACE_MS = 400;
 
 function hasModifier(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
   return event.shiftKey || event.metaKey || event.ctrlKey || event.altKey;
@@ -51,13 +56,24 @@ export function useLineKeys({
   suggestion,
   onAcceptSuggestion,
 }: UseLineKeysOptions): UseLineKeys {
+  const lastSpaceAt = useRef(0);
+
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
       if (isComposing(event)) {
         return;
       }
 
-      if (event.key === "Tab" && !hasModifier(event) && suggestion && onAcceptSuggestion) {
+      const modifier = hasModifier(event);
+      const isSpace = event.key === " " || event.key === "Spacebar" || event.code === "Space";
+      const mayBeSpace =
+        isSpace || event.key === "Unidentified" || event.key === "Process" || event.keyCode === 229;
+
+      if (!mayBeSpace) {
+        lastSpaceAt.current = 0;
+      }
+
+      if (event.key === "Tab" && !modifier && suggestion && onAcceptSuggestion) {
         event.preventDefault();
         onAcceptSuggestion(suggestion.insert);
         return;
@@ -124,6 +140,36 @@ export function useLineKeys({
     [index, onAcceptSuggestion, onAction, suggestion, total],
   );
 
+  const onBeforeInput = useCallback(
+    (event: InputEvent) => {
+      const isSpace =
+        event.data === " " &&
+        (event.inputType === "insertText" || event.inputType === "insertCompositionText");
+
+      if (!isSpace) {
+        lastSpaceAt.current = 0;
+        return;
+      }
+
+      if (!suggestion || !onAcceptSuggestion) {
+        lastSpaceAt.current = 0;
+        return;
+      }
+
+      const now = Date.now();
+
+      if (now - lastSpaceAt.current <= DOUBLE_SPACE_MS) {
+        event.preventDefault();
+        lastSpaceAt.current = 0;
+        onAcceptSuggestion(suggestion.insert);
+        return;
+      }
+
+      lastSpaceAt.current = now;
+    },
+    [onAcceptSuggestion, suggestion],
+  );
+
   const onPaste = useCallback(
     (event: ClipboardEvent<HTMLTextAreaElement>) => {
       const text = event.clipboardData.getData("text");
@@ -143,5 +189,5 @@ export function useLineKeys({
     [onAction],
   );
 
-  return { onKeyDown, onPaste };
+  return { onKeyDown, onBeforeInput, onPaste };
 }

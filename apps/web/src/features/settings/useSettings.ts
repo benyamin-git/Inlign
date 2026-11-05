@@ -15,8 +15,11 @@ export type SettingsModel = {
   /** The theme actually applied, after resolving a null preference. */
   resolvedTheme: Theme;
   accent: Accent;
+  /** Whether new notebooks start with case-insensitive variable names. */
+  defaultIgnoreCase: boolean;
   setTheme: (theme: Theme | null) => Promise<boolean>;
   setAccent: (accent: Accent) => Promise<boolean>;
+  setDefaultIgnoreCase: (value: boolean) => Promise<boolean>;
 };
 
 function prefersDark(): boolean {
@@ -77,6 +80,7 @@ function readMirroredAccent(): Accent {
 export function useSettings(): SettingsModel {
   const [theme, setThemeState] = useState<Theme | null>(readMirroredTheme);
   const [accent, setAccentState] = useState<Accent>(readMirroredAccent);
+  const [defaultIgnoreCase, setDefaultIgnoreCaseState] = useState(false);
   // Following the OS is a live subscription, so returning to `theme: null`
   // picks up the current preference instead of the one at mount.
   const systemDark = useSyncExternalStore(subscribeToSystemTheme, prefersDark, () => false);
@@ -85,6 +89,7 @@ export function useSettings(): SettingsModel {
   // slow load never overwrites a newer choice.
   const touchedTheme = useRef(false);
   const touchedAccent = useRef(false);
+  const touchedDefaultIgnoreCase = useRef(false);
 
   const resolvedTheme = resolveTheme(theme, systemDark);
 
@@ -105,6 +110,10 @@ export function useSettings(): SettingsModel {
         if (!touchedAccent.current) {
           setAccentState(settings.accent);
           writeStorage(ACCENT_STORAGE_KEY, settings.accent);
+        }
+
+        if (!touchedDefaultIgnoreCase.current) {
+          setDefaultIgnoreCaseState(settings.defaultIgnoreCase);
         }
       },
       () => {
@@ -151,5 +160,27 @@ export function useSettings(): SettingsModel {
     }
   }, []);
 
-  return { theme, resolvedTheme, accent, setTheme, setAccent };
+  const setDefaultIgnoreCase = useCallback(async (next: boolean): Promise<boolean> => {
+    touchedDefaultIgnoreCase.current = true;
+    setDefaultIgnoreCaseState(next);
+
+    try {
+      await setSetting("defaultIgnoreCase", next);
+
+      return true;
+    } catch {
+      // Persistence failed; the session keeps the new preference.
+      return false;
+    }
+  }, []);
+
+  return {
+    theme,
+    resolvedTheme,
+    accent,
+    defaultIgnoreCase,
+    setTheme,
+    setAccent,
+    setDefaultIgnoreCase,
+  };
 }

@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, expect, test, vi } from "vitest";
 
 import { db } from "./db.ts";
+import type { Notebook } from "./models.ts";
 import {
   createNotebook,
   deleteNotebook,
@@ -10,6 +11,7 @@ import {
   replaceAllNotebooks,
   updateNotebook,
 } from "./notebooks.ts";
+import { setSetting } from "./settings.ts";
 
 beforeEach(async () => {
   await db.delete();
@@ -31,9 +33,42 @@ test("creates a notebook with a UUID, one empty line and obtained timestamps", a
   expect(notebook.lines[0]?.text).toBe("");
   expect(notebook.lines[0]?.id).not.toBe(notebook.id);
   expect(notebook.pinned).toBe(false);
+  expect(notebook.ignoreCase).toBe(false);
   expect(notebook.createdAt).toBe(notebook.updatedAt);
 
   await expect(getNotebook(notebook.id)).resolves.toEqual(notebook);
+});
+
+test("new notebooks inherit the case preference and can override it", async () => {
+  await setSetting("defaultIgnoreCase", true);
+
+  const inherited = await createNotebook("Inherited");
+  const overridden = await createNotebook("Overridden", undefined, false);
+
+  expect(inherited.ignoreCase).toBe(true);
+  expect(overridden.ignoreCase).toBe(false);
+  await expect(getNotebook(inherited.id)).resolves.toMatchObject({ ignoreCase: true });
+  await expect(getNotebook(overridden.id)).resolves.toMatchObject({ ignoreCase: false });
+});
+
+test("defaults a legacy notebook without a case setting to case-sensitive", async () => {
+  const notebook = await createNotebook("Legacy");
+  const legacy = { ...notebook };
+  delete (legacy as Partial<Notebook>).ignoreCase;
+
+  await db.notebooks.put({ ...legacy, pinned: 0 });
+
+  await expect(getNotebook(notebook.id)).resolves.toMatchObject({ ignoreCase: false });
+});
+
+test("the case setting stays scoped to one notebook", async () => {
+  const first = await createNotebook("First");
+  const second = await createNotebook("Second");
+
+  await updateNotebook(first.id, { ignoreCase: true });
+
+  await expect(getNotebook(first.id)).resolves.toMatchObject({ ignoreCase: true });
+  await expect(getNotebook(second.id)).resolves.toMatchObject({ ignoreCase: false });
 });
 
 test.each([
@@ -162,7 +197,7 @@ test("bumps updatedAt on title and line edits", async () => {
   }
 });
 
-test("preserves updatedAt for pin and order changes", async () => {
+test("preserves updatedAt for pin, order and case-setting changes", async () => {
   const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
 
   try {
@@ -177,6 +212,11 @@ test("preserves updatedAt for pin and order changes", async () => {
     const reordered = await updateNotebook(notebook.id, { sortOrder: 12 });
     expect(reordered.updatedAt).toBe(1_000);
     expect(reordered.sortOrder).toBe(12);
+
+    const caseInsensitive = await updateNotebook(notebook.id, { ignoreCase: true });
+    expect(caseInsensitive.updatedAt).toBe(1_000);
+    expect(caseInsensitive.ignoreCase).toBe(true);
+    await expect(getNotebook(notebook.id)).resolves.toMatchObject({ ignoreCase: true });
   } finally {
     now.mockRestore();
   }
@@ -330,6 +370,7 @@ test("replaces every notebook in one transaction with the stored pinned mapping"
       { id: crypto.randomUUID(), text: "two" },
     ],
     pinned: true,
+    ignoreCase: true,
     sortOrder: 4,
     createdAt: 100,
     updatedAt: 200,
@@ -339,6 +380,7 @@ test("replaces every notebook in one transaction with the stored pinned mapping"
     title: "Second imported",
     lines: [{ id: crypto.randomUUID(), text: "three" }],
     pinned: false,
+    ignoreCase: false,
     sortOrder: 1,
     createdAt: 300,
     updatedAt: 400,
@@ -373,6 +415,7 @@ test("round-trips a replaced list through the repository", async () => {
       title: "Only",
       lines: [{ id: crypto.randomUUID(), text: "kept" }],
       pinned: true,
+      ignoreCase: false,
       sortOrder: -1,
       createdAt: 1,
       updatedAt: 2,
@@ -394,6 +437,7 @@ test("rejects an invalid replacement before clearing the table", async () => {
         title: "Empty",
         lines: [],
         pinned: false,
+        ignoreCase: false,
         sortOrder: 0,
         createdAt: 1,
         updatedAt: 1,
@@ -411,6 +455,7 @@ test("rejects duplicate ids in a replacement without writing anything", async ()
     title: "Duplicate",
     lines: [{ id: crypto.randomUUID(), text: "text" }],
     pinned: false,
+    ignoreCase: false,
     sortOrder: 0,
     createdAt: 1,
     updatedAt: 1,
@@ -434,6 +479,7 @@ test("rejects duplicate line ids in a replacement without writing anything", asy
       { id: lineId, text: "second" },
     ],
     pinned: false,
+    ignoreCase: false,
     sortOrder: 0,
     createdAt: 1,
     updatedAt: 1,

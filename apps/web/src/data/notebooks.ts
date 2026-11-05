@@ -1,12 +1,13 @@
 import { db, type NotebookRecord } from "./db.ts";
 import { createId } from "../lib/id.ts";
 import type { Line, Notebook } from "./models.ts";
+import { getSettings } from "./settings.ts";
 
 const MAX_TITLE_LENGTH = 120;
 const UNTITLED = "Untitled";
 
 type NotebookPatch = Partial<
-  Pick<Notebook, "title" | "lines" | "pinned" | "sortOrder" | "updatedAt">
+  Pick<Notebook, "title" | "lines" | "pinned" | "ignoreCase" | "sortOrder" | "updatedAt">
 >;
 
 function normalizeTitle(title: string | undefined): string {
@@ -20,21 +21,35 @@ function normalizeTitle(title: string | undefined): string {
 }
 
 function toRecord(notebook: Notebook): NotebookRecord {
-  return { ...notebook, pinned: notebook.pinned ? 1 : 0 };
+  return {
+    ...notebook,
+    pinned: notebook.pinned ? 1 : 0,
+    ignoreCase: notebook.ignoreCase ?? false,
+  };
 }
 
 function fromRecord(record: NotebookRecord): Notebook {
-  return { ...record, pinned: record.pinned === 1 };
+  return {
+    ...record,
+    pinned: record.pinned === 1,
+    ignoreCase: record.ignoreCase ?? false,
+  };
 }
 
 function isPinned(record: NotebookRecord): boolean {
   return record.pinned === 1;
 }
 
-export async function createNotebook(title?: string, lines?: Line[]): Promise<Notebook> {
+export async function createNotebook(
+  title?: string,
+  lines?: Line[],
+  ignoreCase?: boolean,
+): Promise<Notebook> {
   if (lines?.length === 0) {
     throw new Error("A notebook must have at least one line");
   }
+
+  const caseInsensitive = ignoreCase ?? (await getSettings()).defaultIgnoreCase;
 
   return db.transaction("rw", db.notebooks, async () => {
     const unpinned = await db.notebooks.where("pinned").equals(0).toArray();
@@ -48,6 +63,7 @@ export async function createNotebook(title?: string, lines?: Line[]): Promise<No
         ? lines.map((line) => ({ id: line.id, text: line.text }))
         : [{ id: createId(), text: "" }],
       pinned: false,
+      ignoreCase: caseInsensitive,
       sortOrder,
       createdAt: now,
       updatedAt: now,
@@ -112,6 +128,10 @@ export async function updateNotebook(id: string, patch: NotebookPatch): Promise<
 
     if (patch.pinned !== undefined) {
       next.pinned = patch.pinned ? 1 : 0;
+    }
+
+    if (patch.ignoreCase !== undefined) {
+      next.ignoreCase = patch.ignoreCase;
     }
 
     if (patch.sortOrder !== undefined) {

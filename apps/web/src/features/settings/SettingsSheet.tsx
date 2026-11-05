@@ -1,5 +1,6 @@
 import type { Notebook } from "../../data/models.ts";
 import { Button } from "../../ui/Button.tsx";
+import { Checkbox } from "../../ui/Checkbox.tsx";
 import { Dialog } from "../../ui/Dialog.tsx";
 import { TransferActions } from "../transfer/TransferActions.tsx";
 import type { TransferModel } from "../transfer/useTransfer.ts";
@@ -47,6 +48,19 @@ export function SettingsSheet({
               resolvedTheme={settings.resolvedTheme}
               onChange={(accent) => {
                 void settings.setAccent(accent);
+              }}
+            />
+          </div>
+        </section>
+        <section>
+          <h3 className="text-sm font-semibold text-on-surface">New notebooks</h3>
+          <div className="mt-3">
+            <Checkbox
+              label="Ignore variable case by default"
+              description="A new notebook treats X and x as the same variable."
+              checked={settings.defaultIgnoreCase}
+              onChange={(checked) => {
+                void settings.setDefaultIgnoreCase(checked);
               }}
             />
           </div>

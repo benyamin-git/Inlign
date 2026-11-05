@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import type { KeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
 
+import { CheckIcon } from "./icons.tsx";
 import { IconButton } from "./IconButton.tsx";
 import { cx } from "./cx.ts";
 
@@ -9,6 +10,8 @@ export type MenuItem = {
   id: string;
   label: string;
   onSelect: () => void;
+  /** Present for a toggle item; exposes `menuitemcheckbox` and its state. */
+  checked?: boolean;
   destructive?: boolean;
   disabled?: boolean;
 };
@@ -126,7 +129,9 @@ export function Menu({ label, items, children, triggerClassName }: MenuProps) {
       return;
     }
 
-    const target = menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]')[activeIndex];
+    const target = menuRef.current?.querySelectorAll<HTMLElement>(
+      '[role="menuitem"], [role="menuitemcheckbox"]',
+    )[activeIndex];
     target?.focus();
   }, [open, activeIndex]);
 
@@ -305,29 +310,35 @@ export function Menu({ label, items, children, triggerClassName }: MenuProps) {
               className="fixed z-[60] flex flex-col gap-0.5 overflow-y-auto rounded-card border border-outline bg-surface-container-high p-1"
               onKeyDown={handleMenuKeyDown}
             >
-              {items.map((item, index) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="menuitem"
-                  tabIndex={index === activeIndex ? 0 : -1}
-                  disabled={item.disabled}
-                  onPointerMove={() => {
-                    setActiveIndex(index);
-                  }}
-                  onClick={() => {
-                    select(item);
-                  }}
-                  className={cx(
-                    "flex min-h-12 w-full items-center rounded-chip px-3 text-start text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50 md:min-h-10",
-                    item.destructive
-                      ? "text-loss hover:bg-surface-container"
-                      : "text-on-surface hover:bg-surface-container",
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
+              {items.map((item, index) => {
+                const checkable = item.checked !== undefined;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role={checkable ? "menuitemcheckbox" : "menuitem"}
+                    aria-checked={checkable ? item.checked : undefined}
+                    tabIndex={index === activeIndex ? 0 : -1}
+                    disabled={item.disabled}
+                    onPointerMove={() => {
+                      setActiveIndex(index);
+                    }}
+                    onClick={() => {
+                      select(item);
+                    }}
+                    className={cx(
+                      "flex min-h-12 w-full items-center gap-3 rounded-chip px-3 text-start text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50 md:min-h-10",
+                      item.destructive
+                        ? "text-loss hover:bg-surface-container"
+                        : "text-on-surface hover:bg-surface-container",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    {item.checked ? <CheckIcon className="h-4 w-4 shrink-0" /> : null}
+                  </button>
+                );
+              })}
             </div>,
             document.body,
           )

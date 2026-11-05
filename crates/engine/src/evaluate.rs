@@ -809,6 +809,33 @@ mod tests {
     }
 
     #[test]
+    fn dotted_multiplication_uses_known_values() {
+        let results = evaluate(&input(&["x = 2", "y = 3", "a = x.y", "a ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![
+                LineStatus::Ok,
+                LineStatus::Ok,
+                LineStatus::Ok,
+                LineStatus::Incomplete,
+            ]
+        );
+        assert_eq!(results[3].suggestion, suggestion("6", "6"));
+    }
+
+    #[test]
+    fn multi_letter_names_are_not_implicit_products() {
+        let results = evaluate(&input(&["xy = 5", "a = xy", "a ="]));
+
+        assert_eq!(
+            statuses(&results),
+            vec![LineStatus::Ok, LineStatus::Ok, LineStatus::Incomplete]
+        );
+        assert_eq!(results[2].suggestion, suggestion("5", "5"));
+    }
+
+    #[test]
     fn formula_after_values_does_not_fill_an_earlier_assignment() {
         let results = evaluate(&input(&["a =", "f = 10", "m = 2", "f = m × a", "a ="]));
 

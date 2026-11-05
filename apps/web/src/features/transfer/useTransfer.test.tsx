@@ -5,7 +5,7 @@ import { createBackup, type Backup } from "../../data/backup.ts";
 import type { Notebook, Settings } from "../../data/models.ts";
 import { useTransfer, type TransferDeps } from "./useTransfer.ts";
 
-const SETTINGS: Settings = { theme: "dark", accent: "teal" };
+const SETTINGS: Settings = { theme: "dark", accent: "teal", defaultIgnoreCase: true };
 
 function makeNotebook(overrides: Partial<Notebook> = {}): Notebook {
   return {
@@ -13,6 +13,7 @@ function makeNotebook(overrides: Partial<Notebook> = {}): Notebook {
     title: "Draft",
     lines: [{ id: crypto.randomUUID(), text: "first line" }],
     pinned: false,
+    ignoreCase: false,
     sortOrder: 0,
     createdAt: 1,
     updatedAt: 2,
@@ -41,6 +42,7 @@ function makeDeps(overrides: Partial<TransferDeps> = {}): TransferDeps {
     getLines: () => undefined,
     setTheme: vi.fn(() => Promise.resolve(true)),
     setAccent: vi.fn(() => Promise.resolve(true)),
+    setDefaultIgnoreCase: vi.fn(() => Promise.resolve(true)),
     cancelPendingWrites: vi.fn(),
     ...overrides,
   };
@@ -92,8 +94,9 @@ test("reports a settings persistence failure after the notebooks were restored",
 
   expect(deps.replaceAll).toHaveBeenCalled();
   expect(deps.setAccent).toHaveBeenCalledWith("teal");
+  expect(deps.setDefaultIgnoreCase).toHaveBeenCalledWith(true);
   expect(result.current.error).toBe(
-    "Notebooks were restored, but the theme and accent could not be saved.",
+    "Notebooks were restored, but the app settings could not be saved.",
   );
 });
 

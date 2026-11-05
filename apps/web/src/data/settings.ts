@@ -1,7 +1,11 @@
 import { db, type SettingRecord } from "./db.ts";
 import type { Accent, Settings, Theme } from "./models.ts";
 
-const DEFAULT_SETTINGS: Settings = { theme: null, accent: "blue" };
+const DEFAULT_SETTINGS: Settings = {
+  theme: null,
+  accent: "blue",
+  defaultIgnoreCase: false,
+};
 
 export const THEMES = ["light", "dark", "oled"] as const satisfies readonly Theme[];
 export const ACCENTS = [
@@ -32,6 +36,10 @@ export async function getSettings(): Promise<Settings> {
 
     if (record.key === "accent" && isAccent(record.value)) {
       settings.accent = record.value;
+    }
+
+    if (record.key === "defaultIgnoreCase" && typeof record.value === "boolean") {
+      settings.defaultIgnoreCase = record.value;
     }
   }
 

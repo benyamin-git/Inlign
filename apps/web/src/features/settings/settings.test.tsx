@@ -50,11 +50,15 @@ test("opens from the top bar, shows both sections, and closes with Done or the s
   const { user, dialog } = await openSettings();
 
   expect(within(dialog).getByText("Appearance")).toBeInTheDocument();
+  expect(within(dialog).getByText("New notebooks")).toBeInTheDocument();
   expect(within(dialog).getByText("Data")).toBeInTheDocument();
   expect(within(dialog).getByRole("button", { name: "Export active" })).toBeDisabled();
   expect(within(dialog).getByRole("button", { name: "Import .inlign" })).toBeEnabled();
   expect(within(dialog).getByRole("group", { name: "Theme" })).toBeInTheDocument();
   expect(within(dialog).getByRole("group", { name: "Accent" })).toBeInTheDocument();
+  expect(
+    within(dialog).getByRole("checkbox", { name: "Ignore variable case by default" }),
+  ).not.toBeChecked();
 
   await user.click(within(dialog).getByRole("button", { name: "Done" }));
 
@@ -137,6 +141,33 @@ test("switching accent applies immediately and persists to the mirror and Dexie"
   });
 });
 
+test("persists the case preference used by new notebooks", async () => {
+  render(<App />);
+
+  const { user, dialog } = await openSettings();
+  const toggle = within(dialog).getByRole("checkbox", {
+    name: "Ignore variable case by default",
+  });
+
+  await user.click(toggle);
+
+  expect(toggle).toBeChecked();
+  await waitFor(async () => {
+    await expect(settingsData.getSettings()).resolves.toMatchObject({
+      defaultIgnoreCase: true,
+    });
+  });
+
+  await user.click(within(dialog).getByRole("button", { name: "Done" }));
+  await user.click(screen.getByRole("button", { name: "Settings" }));
+
+  expect(
+    within(screen.getByRole("dialog", { name: "Settings" })).getByRole("checkbox", {
+      name: "Ignore variable case by default",
+    }),
+  ).toBeChecked();
+});
+
 test("reopening and remounting keeps the stored choice", async () => {
   await settingsData.setSetting("theme", "oled");
   await settingsData.setSetting("accent", "violet");
@@ -189,7 +220,7 @@ test("a slow settings load does not overwrite a choice made before it resolves",
 
   expect(document.documentElement.dataset.theme).toBe("dark");
 
-  resolveLoad({ theme: "light", accent: "rose" });
+  resolveLoad({ theme: "light", accent: "rose", defaultIgnoreCase: true });
 
   await waitFor(() => {
     expect(document.documentElement.dataset.accent).toBe("rose");
@@ -199,4 +230,7 @@ test("a slow settings load does not overwrite a choice made before it resolves",
   expect(window.localStorage.getItem("inlign.theme")).toBe("dark");
   expect(within(dialog).getByRole("radio", { name: "Dark" })).toBeChecked();
   expect(within(dialog).getByRole("radio", { name: "Rose" })).toBeChecked();
+  expect(
+    within(dialog).getByRole("checkbox", { name: "Ignore variable case by default" }),
+  ).toBeChecked();
 });

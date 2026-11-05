@@ -23,14 +23,22 @@ and cross-checks values in place.
 - Evaluation is prefix-only. A focused line with an empty right-hand side shows
   one grey suggestion when its value is already known. Incomplete syntax and
   valid unsolved lines are not errors and stay unmarked. Tab inserts only the
-  missing value and Escape dismisses the suggestion. The first error shows red
-  inline text and a red card border, and later lines are dimmed and skipped
-  until the error is fixed. A conflicting assignment keeps the first value.
+  missing value; on a touch keyboard, pressing Space twice does the same. Escape
+  dismisses the suggestion. The first error shows red inline text and a red card
+  border, and later lines are dimmed and skipped until the error is fixed. A
+  conflicting assignment keeps the first value.
 - The solver handles linear equations, quadratics, pure powers and simple
   rational equations, including one set-valued variable at a time. Symmetric
   roots display as `±v`; non-symmetric sets display descending and Tab inserts
   the largest value. Coupled nonlinear systems, a second set and unknown
   exponents are valid but unsolved.
+- Variable names are case-sensitive by default. Each notebook's menu can enable
+  Ignore variable case, making `X` and `x` the same name; Settings chooses the
+  default for notebooks created from then on. Existing notebooks stay
+  case-sensitive until changed.
+- Multiplication is written with `*`, `×`, `·`, or a dot between names
+  (`x.y`). Bare `xy` remains one multi-letter variable name, and other implicit
+  forms such as `2a` are not supported.
 - The editor renders one logical line per card: Enter splits, Backspace and
   Delete merge, pasted newlines become separate cards, and cards can be dragged
   by their grip or moved with the keyboard.
@@ -44,15 +52,17 @@ and cross-checks values in place.
   keyboard. Pinning moves a notebook to the top of its new section.
 - Settings switches between Light, Dark and OLED and all six accents. The choice
   is stored in IndexedDB, mirrored to localStorage for the pre-paint theme
-  script, and follows the OS until a theme is chosen.
+  script, and follows the OS until a theme is chosen. Settings → New notebooks
+  also sets whether new notebooks start with case-insensitive variable names.
 - The notebook menu exports a notebook as a slugified `.inlign` plain-text file
   with one line per row and no trailing newline. Settings → Data imports an
   `.inlign` file as a new notebook and can export the active notebook.
 - Settings → Data exports a versioned `inlign-backup.json` backup containing
-  every notebook and the appearance settings. Import offers Add as new (fresh
-  ids), Merge (update matching ids, add missing, keep the rest) or Replace all.
-  Replace starts a safety-backup download before asking for a second
-  confirmation, and every mode validates the file before writing.
+  every notebook, each notebook's case setting and the app settings. Import
+  offers Add as new (fresh ids), Merge (update matching ids, add missing, keep
+  the rest) or Replace all. Replace starts a safety-backup download before
+  asking for a second confirmation, and every mode validates the file before
+  writing.
 - The math engine is a pure Rust crate with a thin WASM facade. The UI never
   imports the generated package directly; it goes through the typed worker
   protocol, and annotations are derived from responses rather than stored with
@@ -182,7 +192,7 @@ apps/web/                   React 19 + Vite 8 PWA
   src/features/transfer/    `.inlign` and JSON import/export dialogs
   src/lib/                  debounce and download helpers
   src/theme/                tokens.css, generated accents.css, theme helpers
-  src/ui/                   shared buttons, dialogs, menus and fields
+  src/ui/                   shared buttons, dialogs, menus, fields and checkbox
   src/test/                 Vitest setup
   e2e/                      Playwright tests
   public/                   favicon and PWA icons
@@ -219,12 +229,12 @@ preview server to test install and offline behavior.
 ## Data and privacy
 
 There are no accounts, no telemetry and no requests to third-party services
-after the page loads. Notebooks and appearance settings are stored in IndexedDB
-in the browser. `.inlign` files export a single notebook as plain text, and
-Settings → Data exports a versioned JSON backup of every notebook and the
-appearance settings. A restore validates the file and offers Add, Merge or
-Replace before writing; Replace starts a safety-backup download and requires a
-second confirmation.
+after the page loads. Notebooks and app settings are stored in IndexedDB in the
+browser. `.inlign` files export a single notebook as plain text, and
+Settings → Data exports a versioned JSON backup of every notebook, each
+notebook's case setting and the app settings. A restore validates the file and
+offers Add, Merge or Replace before writing; Replace starts a safety-backup
+download and requires a second confirmation.
 
 ## CI
 
@@ -267,8 +277,10 @@ pnpm build
   tolerance are constants, not settings.
 - The engine produces numeric values only, with no symbolic algebra or
   derived-form output.
-- Functions, constants, units, comparisons, square brackets, `%`, implicit
-  multiplication such as `2a`, and commas as input are not supported.
+- Functions, constants, units, comparisons, square brackets, `%`, general
+  implicit multiplication such as `2a` or `(a)(b)`, and commas as input are
+  not supported. A bare `xy` remains one variable name; use `x.y` for a
+  product.
 - No structural undo; only the textarea's native undo exists.
 - The 500-line performance test must finish in under 50 ms in a release build;
   the editor has no list virtualization.

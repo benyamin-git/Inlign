@@ -3,8 +3,12 @@ import Dexie, { type EntityTable } from "dexie";
 import type { Notebook, Settings } from "./models.ts";
 
 // IndexedDB cannot index booleans, so `pinned` is stored as 0 or 1 and mapped
-// back to a boolean at the repository boundary.
-export type NotebookRecord = Omit<Notebook, "pinned"> & { pinned: 0 | 1 };
+// back to a boolean at the repository boundary. `ignoreCase` arrived after the
+// first notebooks were written, so records without it default to false.
+export type NotebookRecord = Omit<Notebook, "pinned" | "ignoreCase"> & {
+  pinned: 0 | 1;
+  ignoreCase?: boolean;
+};
 
 export type SettingRecord = {
   key: keyof Settings;

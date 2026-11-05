@@ -14,6 +14,7 @@ export type LineAnnotations = Map<string, LineEvaluation>;
 export function useEngineEvaluation(
   engine: EngineEvaluator | null,
   lines: Line[],
+  ignoreCase = false,
 ): LineAnnotations {
   const [annotations, setAnnotations] = useState<LineAnnotations>(() => new Map());
   const requestIdRef = useRef(0);
@@ -25,8 +26,14 @@ export function useEngineEvaluation(
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
+    // The engine stays case-sensitive; this notebook-wide option folds names
+    // at the boundary so the editor keeps the user's original spelling.
+    const input = lines.map(({ id, text }) => ({
+      id,
+      text: ignoreCase ? text.toLowerCase() : text,
+    }));
     const timer = window.setTimeout(() => {
-      void engine.evaluate(lines.map(({ id, text }) => ({ id, text }))).then(
+      void engine.evaluate(input).then(
         (results) => {
           if (requestIdRef.current !== requestId) {
             return;
@@ -46,7 +53,7 @@ export function useEngineEvaluation(
       window.clearTimeout(timer);
       requestIdRef.current += 1;
     };
-  }, [engine, lines]);
+  }, [engine, ignoreCase, lines]);
 
   return engine === null ? new Map<string, LineEvaluation>() : annotations;
 }

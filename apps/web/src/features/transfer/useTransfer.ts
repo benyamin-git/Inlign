@@ -27,6 +27,7 @@ export type TransferDeps = {
   getLines: (notebookId: string) => Line[] | undefined;
   setTheme: (theme: Theme | null) => Promise<boolean>;
   setAccent: (accent: Accent) => Promise<boolean>;
+  setDefaultIgnoreCase: (value: boolean) => Promise<boolean>;
   /** Drops the open editor's debounced write before storage is replaced. */
   cancelPendingWrites: () => void;
 };
@@ -61,6 +62,7 @@ export function useTransfer({
   getLines,
   setTheme,
   setAccent,
+  setDefaultIgnoreCase,
   cancelPendingWrites,
 }: TransferDeps): TransferModel {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -181,15 +183,16 @@ export function useTransfer({
           await replaceAll(backup.notebooks);
           setPendingBackup(null);
 
-          const [themeSaved, accentSaved] = await Promise.allSettled([
+          const [themeSaved, accentSaved, caseSaved] = await Promise.allSettled([
             setTheme(backup.settings.theme),
             setAccent(backup.settings.accent),
+            setDefaultIgnoreCase(backup.settings.defaultIgnoreCase),
           ]);
           const saved = (result: PromiseSettledResult<boolean>): boolean =>
             result.status === "fulfilled" && result.value;
 
-          if (!saved(themeSaved) || !saved(accentSaved)) {
-            setError("Notebooks were restored, but the theme and accent could not be saved.");
+          if (!saved(themeSaved) || !saved(accentSaved) || !saved(caseSaved)) {
+            setError("Notebooks were restored, but the app settings could not be saved.");
           }
         } else {
           const current = currentNotebooks();
@@ -207,7 +210,15 @@ export function useTransfer({
         setBusy(false);
       }
     },
-    [pendingBackup, replaceAll, currentNotebooks, setTheme, setAccent, cancelPendingWrites],
+    [
+      pendingBackup,
+      replaceAll,
+      currentNotebooks,
+      setTheme,
+      setAccent,
+      setDefaultIgnoreCase,
+      cancelPendingWrites,
+    ],
   );
 
   return {

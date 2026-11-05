@@ -35,6 +35,25 @@ test("closes when clicking outside the menu", async () => {
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });
 
+test("checkable items expose and toggle their checked state", async () => {
+  const user = userEvent.setup();
+  const onSelect = vi.fn();
+  const trigger = renderMenu([
+    { id: "case", label: "Ignore variable case", checked: true, onSelect },
+  ]);
+
+  await user.click(trigger);
+
+  const item = screen.getByRole("menuitemcheckbox", { name: "Ignore variable case" });
+
+  expect(item).toHaveAttribute("aria-checked", "true");
+
+  await user.click(item);
+
+  expect(onSelect).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+});
+
 test("closes on Tab and returns focus to the trigger", async () => {
   const user = userEvent.setup();
   const trigger = renderMenu([{ id: "rename", label: "Rename", onSelect: vi.fn() }]);

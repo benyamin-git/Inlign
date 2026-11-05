@@ -17,6 +17,7 @@ export type NotebookItemProps = {
   onSelect: () => void;
   onRename: (title: string) => Promise<void>;
   onSetPinned: (pinned: boolean) => Promise<void>;
+  onSetIgnoreCase: (ignoreCase: boolean) => Promise<void>;
   onDelete: () => Promise<void>;
   /** Wired by the export milestone; hidden until then. */
   onExport?: (() => void) | undefined;
@@ -28,6 +29,7 @@ export function NotebookItem({
   onSelect,
   onRename,
   onSetPinned,
+  onSetIgnoreCase,
   onDelete,
   onExport,
 }: NotebookItemProps) {
@@ -120,6 +122,14 @@ export function NotebookItem({
       label: notebook.pinned ? "Unpin notebook" : "Pin notebook",
       onSelect: () => {
         void onSetPinned(!notebook.pinned);
+      },
+    },
+    {
+      id: "ignore-case",
+      label: "Ignore variable case",
+      checked: notebook.ignoreCase,
+      onSelect: () => {
+        void onSetIgnoreCase(!notebook.ignoreCase);
       },
     },
     ...(onExport ? [{ id: "export", label: "Export .inlign", onSelect: onExport }] : []),
