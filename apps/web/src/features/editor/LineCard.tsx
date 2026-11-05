@@ -3,6 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 
 import type { Line } from "../../data/models.ts";
+import type { LineEvaluation } from "../../engine/protocol.ts";
 import { GripIcon } from "../../ui/icons.tsx";
 import type { LineAction } from "./lineOps.ts";
 import { highlightMath } from "./mathSyntax.ts";
@@ -12,6 +13,7 @@ export type LineCardProps = {
   line: Line;
   index: number;
   total: number;
+  annotation?: LineEvaluation | undefined;
   onAction: (action: LineAction) => void;
 };
 

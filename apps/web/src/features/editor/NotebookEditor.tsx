@@ -3,12 +3,15 @@ import { useCallback, useEffect } from "react";
 import type { Line, Notebook } from "../../data/models.ts";
 import { LineCardList } from "./LineCardList.tsx";
 import type { LineAction } from "./lineOps.ts";
+import { useEngineEvaluation, type EngineEvaluator } from "./useEngineEvaluation.ts";
 import { useNotebookEditor } from "./useNotebookEditor.ts";
 
 export type NotebookEditorProps = {
   notebook: Notebook;
   /** Changes when the whole notebook table is restored, forcing a reload. */
   revision?: number;
+  /** Optional engine used to annotate lines; null while the app starts up. */
+  engine?: EngineEvaluator | null;
   /** Lets the app export the in-memory lines before autosave catches up. */
   onLinesChange?: ((lines: Line[]) => void) | undefined;
   /**
@@ -21,6 +24,7 @@ export type NotebookEditorProps = {
 export function NotebookEditor({
   notebook,
   revision = 0,
+  engine = null,
   onLinesChange,
   registerCancelPendingWrites,
 }: NotebookEditorProps) {
@@ -36,6 +40,7 @@ export function NotebookEditor({
     onReorder,
     cancelPendingWrites,
   } = useNotebookEditor(notebook, revision);
+  const annotations = useEngineEvaluation(engine, lines);
 
   const handleAction = useCallback(
     (lineId: string, action: LineAction) => {
@@ -74,5 +79,13 @@ export function NotebookEditor({
     };
   }, [cancelPendingWrites, registerCancelPendingWrites]);
 
-  return <LineCardList lines={lines} focus={focus} onAction={handleAction} onReorder={onReorder} />;
+  return (
+    <LineCardList
+      lines={lines}
+      focus={focus}
+      annotations={annotations}
+      onAction={handleAction}
+      onReorder={onReorder}
+    />
+  );
 }

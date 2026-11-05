@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Line, Notebook } from "../data/models.ts";
+import { EngineClient } from "../engine/client.ts";
 import { NotebookEditor } from "../features/editor/NotebookEditor.tsx";
 import { NotebookSidebar } from "../features/notebooks/NotebookSidebar.tsx";
 import { useNotebooks } from "../features/notebooks/useNotebooks.ts";
@@ -15,6 +16,29 @@ export default function App() {
   // Reconciles Dexie with the pre-paint mirror and applies theme changes live.
   const settings = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [engine, setEngine] = useState<EngineClient | null>(null);
+
+  // Creating the client during render would leave a disposed instance behind
+  // when StrictMode mounts, unmounts and mounts the app again.
+  useEffect(() => {
+    if (typeof Worker === "undefined") {
+      return;
+    }
+
+    const client = new EngineClient();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setEngine(client);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      client.dispose();
+      setEngine((current) => (current === client ? null : current));
+    };
+  }, []);
 
   const {
     notebooks,
@@ -118,6 +142,7 @@ export default function App() {
             key={active.id}
             notebook={active}
             revision={revision}
+            engine={engine}
             onLinesChange={(lines) => {
               editorLinesRef.current.set(active.id, lines);
             }}

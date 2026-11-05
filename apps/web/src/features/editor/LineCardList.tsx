@@ -5,16 +5,24 @@ import { createId } from "../../lib/id.ts";
 import { LineCard } from "./LineCard.tsx";
 import { moveLine, type LineAction } from "./lineOps.ts";
 import { CardDndProvider } from "./useCardDnd.tsx";
+import type { LineAnnotations } from "./useEngineEvaluation.ts";
 import type { EditorFocus } from "./useNotebookEditor.ts";
 
 export type LineCardListProps = {
   lines: Line[];
   focus: EditorFocus | null;
+  annotations: LineAnnotations;
   onAction: (lineId: string, action: LineAction) => void;
   onReorder: (lines: Line[]) => void;
 };
 
-export function LineCardList({ lines, focus, onAction, onReorder }: LineCardListProps) {
+export function LineCardList({
+  lines,
+  focus,
+  annotations,
+  onAction,
+  onReorder,
+}: LineCardListProps) {
   const listRef = useRef<HTMLOListElement>(null);
   const [fallback] = useState<Line>(() => ({ id: createId(), text: "" }));
 
@@ -69,6 +77,7 @@ export function LineCardList({ lines, focus, onAction, onReorder }: LineCardList
             line={line}
             index={index}
             total={visibleLines.length}
+            annotation={annotations.get(line.id)}
             onAction={(action) => {
               onAction(line.id, action);
             }}
