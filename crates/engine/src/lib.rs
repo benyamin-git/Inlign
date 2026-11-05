@@ -7,6 +7,7 @@ pub mod ast;
 pub mod format;
 pub mod lexer;
 pub mod parser;
+pub mod solver;
 
 pub use ast::{BinOp, Equation, Expr};
 pub use format::{
@@ -15,6 +16,7 @@ pub use format::{
 };
 pub use lexer::{LexError, Token, TokenKind, lex};
 pub use parser::{IncompleteLine, ParseError, ParseOutcome, parse};
+pub use solver::{AddOutcome, LinearForm, LinearSystem};
 
 /// Returns the crate version.
 pub fn version() -> &'static str {
