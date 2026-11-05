@@ -16,7 +16,10 @@ pub use format::{
 };
 pub use lexer::{LexError, Token, TokenKind, lex};
 pub use parser::{IncompleteLine, ParseError, ParseOutcome, parse};
-pub use solver::{AddOutcome, LinearForm, LinearSystem};
+pub use solver::{
+    AddOutcome, LinearForm, LinearSystem, LinearizeOutcome, UnivariateOutcome, linearize,
+    solve_univariate,
+};
 
 /// Returns the crate version.
 pub fn version() -> &'static str {
